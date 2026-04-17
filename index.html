@@ -1,542 +1,126 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>献立予算プランナー Ver5</title>
-  <style>
-    :root{
-      --bg:#fff8f1; --card:#ffffff; --line:#eadfce; --text:#2f2a24; --muted:#7c6f62;
-      --accent:#e07a5f; --accent-soft:#fff1ec; --green:#7aa874; --green-soft:#eef8ee;
-      --yellow:#f2c14e; --yellow-soft:#fff8de; --pink:#d98ca4; --pink-soft:#fff0f5;
-      --blue:#6c8db5; --blue-soft:#eef5ff; --heavy:#c96b39; --heavy-soft:#fff0e6;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#fff8f1 0%,#fffdf9 100%);color:var(--text)}
-    .wrap{max-width:1180px;margin:0 auto;padding:16px}
-    h1{font-size:28px;margin:0 0 6px}
-    .sub{color:var(--muted);margin-bottom:14px;line-height:1.6}
-    .grid{display:grid;grid-template-columns:360px 1fr;gap:14px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 4px 16px rgba(120,90,60,.05)}
-    .stack{display:flex;flex-direction:column;gap:14px}
-    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px;font-weight:700}
-    input,select,textarea,button{width:100%;font:inherit;border-radius:14px;border:1px solid var(--line);padding:12px;background:#fff}
-    textarea{min-height:68px;resize:vertical}
-    button{background:var(--accent);color:#fff;border:none;font-weight:800;cursor:pointer}
-    button.secondary{background:#fff;color:var(--accent);border:1px solid #efc7bb}
-    button.ghost{background:#fffdf9;color:var(--text);border:1px dashed var(--line)}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar button{width:auto;padding:10px 14px}
-    .row2,.row3{display:grid;gap:10px}.row2{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr 1fr 1fr}
-    .section-title{margin:0 0 10px;font-size:20px}
-    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-    .stat{border:1px solid var(--line);border-radius:16px;padding:12px;background:#fffdfa}
-    .k{font-size:12px;color:var(--muted)} .v{font-size:22px;font-weight:900;margin-top:4px}
-    .prefs{display:flex;gap:8px;flex-wrap:wrap}
-    .pref{width:auto;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:700;color:var(--text)}
-    .pref.active{border-color:transparent;color:#fff;background:var(--accent)}
-    .weeks{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    .week{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}
-    .week h3{margin:0 0 10px}
-    .meal{border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:10px;background:#fffefc}
-    .meal h4{margin:0 0 8px;font-size:18px}
-    .meta,.badges{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-    .pill,.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800}
-    .pill{background:#f8eee9;color:#8d5f50}
-    .badge.time{background:var(--yellow-soft);color:#9a6a00}
-    .badge.bento{background:var(--blue-soft);color:#315b8f}
-    .badge.veg{background:var(--green-soft);color:#3f7c3c}
-    .badge.heavy{background:var(--heavy-soft);color:#9f4d1f}
-    .badge.save{background:#f0fff5;color:#2d7b45}
-    .badge.kids{background:var(--pink-soft);color:#9a5167}
-    .small{font-size:12px;color:var(--muted);line-height:1.7}
-    .mini{font-size:11px;color:var(--muted)}
-    .prompt{background:#fffaf6;border:1px dashed var(--line);padding:10px;border-radius:12px;white-space:pre-wrap;line-height:1.6;margin-top:8px}
-    .list{line-height:1.8}
-    .list-block{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    .list-card{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
-    .list-card h4{margin:0 0 8px;font-size:15px}
-    .note{background:#fff7ec;border:1px solid #f1dcc1;padding:10px;border-radius:12px;color:#765c36}
-    .topline{display:flex;justify-content:space-between;gap:10px;align-items:center}
-    .switchline{display:flex;gap:8px;flex-wrap:wrap}
-    .inlinehint{font-size:12px;color:var(--muted)}
-    @media(max-width:980px){.grid,.weeks,.stats,.row2,.row3,.list-block{grid-template-columns:1fr}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>献立予算プランナー Ver6</title>
+
+<style>
+body {font-family:sans-serif;background:#f7f7f7;margin:0;padding:10px;}
+.card {background:#fff;padding:12px;margin:10px 0;border-radius:10px;}
+button {background:#ff7f50;color:#fff;border:none;padding:8px 12px;border-radius:8px;}
+.badge {padding:3px 6px;border-radius:6px;font-size:11px;margin-right:4px;}
+.green{background:#c8f7c5;}
+.blue{background:#c5e3f7;}
+.yellow{background:#fff3b0;}
+.orange{background:#ffd6a5;}
+</style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="topline">
-    <div>
-      <h1>献立予算プランナー Ver5</h1>
-      <div class="sub">魚などのNG条件、弁当の曜日と人数、好みタグ、おやつまで反映。質問数は少なく、結果は色で見やすくしました。</div>
-    </div>
-  </div>
 
-  <div class="grid">
-    <div class="card stack">
-      <div>
-        <h2 class="section-title">設定</h2>
-        <div class="row2">
-          <div>
-            <label>月の食費予算（円）</label>
-            <input id="monthlyBudget" type="number" value="50000" min="10000" step="1000">
-          </div>
-          <div>
-            <label>嗜好品予算（円）</label>
-            <input id="luxuryBudget" type="number" value="5000" min="0" step="500">
-          </div>
-        </div>
-        <div class="row3">
-          <div>
-            <label>家族人数</label>
-            <input id="householdSize" type="number" value="3" min="1" max="8">
-          </div>
-          <div>
-            <label>夕食人数</label>
-            <input id="dinnerPersons" type="number" value="3" min="1" max="8">
-          </div>
-          <div>
-            <label>副菜数</label>
-            <select id="sideCount"><option>1</option><option selected>2</option><option>3</option></select>
-          </div>
-        </div>
-        <div class="row3">
-          <div>
-            <label>お弁当</label>
-            <select id="bentoSchedule"><option selected>平日のみ</option><option>毎日</option><option>なし</option></select>
-          </div>
-          <div>
-            <label>お弁当人数</label>
-            <input id="bentoPersons" type="number" value="1" min="0" max="8">
-          </div>
-          <div>
-            <label>おやつ</label>
-            <select id="snackFreq"><option>なし</option><option selected>週2回</option><option>週3回</option><option>毎日少し</option></select>
-          </div>
-        </div>
-        <div class="row2">
-          <div>
-            <label>朝ごはん</label>
-            <select id="breakfastStyle"><option selected>ご飯派</option><option>パン派</option><option>両方</option></select>
-          </div>
-          <div>
-            <label>冷凍食品</label>
-            <select id="frozen"><option selected>たまに使う</option><option>なるべく使わない</option><option>よく使う</option></select>
-          </div>
-        </div>
-        <label>避けたいもの（例：魚, きのこ, 辛いもの）</label>
-        <textarea id="dislikes">魚</textarea>
-        <label>家にあるもの（カンマ区切り）</label>
-        <textarea id="inventory">卵, 玉ねぎ, じゃがいも, にんじん, 豆腐</textarea>
-        <label>好み（複数選択）</label>
-        <div id="prefButtons" class="prefs"></div>
-        <div class="toolbar" style="margin-top:14px">
-          <button id="generateBtn">1か月献立を作る</button>
-          <button id="rerollBtn" class="secondary">1週目だけ再作成</button>
-        </div>
-      </div>
-      <div class="note">GeminiはiPhone側で自動入力が安定しないことがあるので、<strong>開く</strong>と<strong>質問文をコピー</strong>の両方を置いています。</div>
-    </div>
+<h2>献立プランナー Ver6</h2>
 
-    <div class="stack">
-      <div class="card">
-        <h2 class="section-title">集計</h2>
-        <div id="stats" class="stats"></div>
-      </div>
-      <div class="card">
-        <h2 class="section-title">1週目の詳細</h2>
-        <div id="weekDetail"></div>
-      </div>
-      <div class="card">
-        <h2 class="section-title">1週目の買い物リスト</h2>
-        <div id="shoppingList" class="list-block"></div>
-      </div>
-    </div>
-  </div>
+<div class="card">
+<label>人数</label>
+<input id="people" type="number" value="3">
 
-  <div class="card" style="margin-top:14px">
-    <h2 class="section-title">1か月の献立一覧</h2>
-    <div id="monthPlan" class="weeks"></div>
-  </div>
+<label>避けたい食材</label>
+<input id="ng" placeholder="魚など">
+
+<label>お弁当</label>
+<select id="bento">
+<option>平日のみ</option>
+<option>毎日</option>
+<option>なし</option>
+</select>
+
+<button onclick="make()">献立作成</button>
 </div>
 
+<div id="result"></div>
+<div id="shopping"></div>
+
 <script>
-const prefOptions = ['がっつり','あっさり','野菜多め','時短','節約','子ども向け','作り置き','ヘルシー','おやつあり'];
 
-const breakfastRice = [
-  'ご飯・味噌汁・納豆', 'ご飯・味噌汁・卵焼き', 'ご飯・味噌汁・目玉焼き',
-  'ご飯・味噌汁・しらす以外のたんぱく質', 'ご飯・味噌汁・豆腐そぼろ', 'ご飯・味噌汁・ウインナー少量'
-];
-const breakfastBread = [
-  'トースト・ヨーグルト・ゆで卵', 'ロールパン・スープ・チーズ', 'サンドイッチ・牛乳・果物'
-];
-const snackPool = [
-  {name:'バナナヨーグルト', cost:90, tags:['ヘルシー','5分']},
-  {name:'きなこトースト', cost:70, tags:['甘い','5分']},
-  {name:'さつまいもスティック', cost:110, tags:['野菜系','作り置き']},
-  {name:'ホットケーキミニ', cost:120, tags:['子ども向け']},
-  {name:'塩おにぎり', cost:60, tags:['がっつり','時短']},
-  {name:'フルーツゼリー', cost:80, tags:['市販寄り']},
-  {name:'チーズクラッカー', cost:100, tags:['しょっぱい']},
-  {name:'蒸しパン', cost:100, tags:['手作り']}
-];
+// メニューDB（簡易）
+const meals = [
+ {name:"鶏の照り焼き",cat:"鶏",veg:true,protein:true,ing:[
+  {n:"鶏もも肉",a:300,u:"g"},
+  {n:"玉ねぎ",a:1,u:"個"}
+ ]},
 
-const sidePool = [
-  {name:'きんぴらごぼう', cat:'野菜', tags:['作り置き','弁当']},
-  {name:'ひじき煮', cat:'野菜', tags:['作り置き','弁当']},
-  {name:'ほうれん草ごま和え', cat:'野菜', tags:['野菜多め','弁当']},
-  {name:'小松菜の煮びたし', cat:'野菜', tags:['野菜多め']},
-  {name:'にんじんしりしり', cat:'野菜', tags:['作り置き','弁当']},
-  {name:'ブロッコリー塩ゆで', cat:'野菜', tags:['時短','弁当']},
-  {name:'もやしナムル', cat:'野菜', tags:['節約','時短']},
-  {name:'ポテトサラダ', cat:'いも', tags:['弁当']},
-  {name:'マカロニサラダ', cat:'麺', tags:['弁当']},
-  {name:'切り干し大根', cat:'野菜', tags:['作り置き']},
-  {name:'ゆで卵', cat:'卵', tags:['時短','弁当']},
-  {name:'卵焼き', cat:'卵', tags:['時短','弁当']},
-  {name:'きゅうりの浅漬け', cat:'野菜', tags:['さっぱり']},
-  {name:'大学いも', cat:'いも', tags:['子ども向け']},
-  {name:'キャベツ塩昆布', cat:'野菜', tags:['時短']},
-  {name:'枝豆', cat:'豆', tags:['時短']},
-  {name:'ミニトマト', cat:'野菜', tags:['時短','弁当']},
-  {name:'ウインナー', cat:'肉', tags:['時短','弁当']},
-  {name:'冷凍ブロッコリー', cat:'冷凍', tags:['時短','弁当','冷凍']},
-  {name:'かぼちゃ煮', cat:'野菜', tags:['作り置き']},
-  {name:'ささみときゅうりの和え物', cat:'たんぱく', tags:['ヘルシー']},
-  {name:'豆腐サラダ', cat:'豆腐', tags:['ヘルシー','野菜多め']},
-  {name:'コールスロー', cat:'野菜', tags:['野菜多め']},
-  {name:'きのこソテー', cat:'野菜', tags:['作り置き']},
-  {name:'れんこんきんぴら', cat:'野菜', tags:['作り置き','弁当']}
+ {name:"豚しょうが焼き",cat:"豚",veg:true,protein:true,ing:[
+  {n:"豚肉",a:300,u:"g"},
+  {n:"玉ねぎ",a:1,u:"個"}
+ ]},
+
+ {name:"麻婆豆腐",cat:"豆腐",veg:false,protein:true,ing:[
+  {n:"ひき肉",a:200,u:"g"},
+  {n:"豆腐",a:1,u:"丁"}
+ ]},
+
+ {name:"ハンバーグ",cat:"牛",veg:false,protein:true,ing:[
+  {n:"ひき肉",a:300,u:"g"},
+  {n:"玉ねぎ",a:1,u:"個"}
+ ]},
+
+ {name:"野菜炒め",cat:"野菜",veg:true,protein:false,ing:[
+  {n:"キャベツ",a:0.5,u:"個"},
+  {n:"にんじん",a:1,u:"本"}
+ ]}
 ];
 
-const proteins = [
-  {key:'chicken', label:'鶏', ingredients:['鶏もも肉','鶏むね肉'], cost:420, cat:'鶏', fish:false, bento:true},
-  {key:'pork', label:'豚', ingredients:['豚こま肉','豚ロース'], cost:430, cat:'豚', fish:false, bento:true},
-  {key:'beef', label:'牛', ingredients:['牛こま肉'], cost:560, cat:'牛', fish:false, bento:true},
-  {key:'mince', label:'ひき肉', ingredients:['合いびき肉','鶏ひき肉'], cost:410, cat:'ひき肉', fish:false, bento:true},
-  {key:'tofu', label:'豆腐', ingredients:['木綿豆腐','厚揚げ'], cost:320, cat:'豆腐', fish:false, bento:false},
-  {key:'egg', label:'卵', ingredients:['卵'], cost:280, cat:'卵', fish:false, bento:true},
-  {key:'fish', label:'魚', ingredients:['鮭','さば','たら'], cost:540, cat:'魚', fish:true, bento:true}
-];
+function make(){
 
-const styles = [
-  {name:'照り焼き', tags:['時短','弁当OK'], time:18, adjust:10, heavy:1, veg:0, prep:1, save:0},
-  {name:'生姜焼き', tags:['時短','弁当OK'], time:15, adjust:0, heavy:1, veg:0, prep:1, save:0},
-  {name:'甘辛炒め', tags:['時短','節約'], time:15, adjust:-10, heavy:1, veg:0, prep:1, save:0},
-  {name:'黒酢炒め', tags:['野菜多め'], time:18, adjust:20, heavy:0, veg:1, prep:0, save:0},
-  {name:'塩炒め', tags:['時短','野菜多め'], time:15, adjust:0, heavy:0, veg:1, prep:0, save:0},
-  {name:'味噌焼き', tags:['弁当OK'], time:18, adjust:10, heavy:1, veg:0, prep:0, save:0},
-  {name:'トマト煮', tags:['野菜多め','ヘルシー'], time:22, adjust:10, heavy:0, veg:1, prep:1, save:1},
-  {name:'カレー炒め', tags:['がっつり','時短'], time:15, adjust:-10, heavy:1, veg:0, prep:0, save:0},
-  {name:'オイスター炒め', tags:['がっつり'], time:18, adjust:15, heavy:1, veg:0, prep:0, save:0},
-  {name:'そぼろ', tags:['弁当OK','作り置き'], time:18, adjust:-20, heavy:0, veg:0, prep:1, save:1},
-  {name:'ハンバーグ', tags:['子ども向け','弁当OK'], time:28, adjust:30, heavy:1, veg:0, prep:1, save:1},
-  {name:'つくね', tags:['子ども向け','弁当OK'], time:22, adjust:-10, heavy:1, veg:0, prep:1, save:1},
-  {name:'南蛮風', tags:['がっつり','弁当OK'], time:24, adjust:30, heavy:1, veg:0, prep:0, save:0},
-  {name:'丼', tags:['時短','がっつり'], time:15, adjust:-20, heavy:1, veg:0, prep:0, save:0},
-  {name:'野菜あんかけ', tags:['野菜多め'], time:20, adjust:20, heavy:0, veg:1, prep:0, save:0},
-  {name:'煮物', tags:['作り置き'], time:28, adjust:-10, heavy:0, veg:1, prep:1, save:1},
-  {name:'グリル', tags:['ヘルシー'], time:18, adjust:0, heavy:0, veg:0, prep:0, save:0}
-];
+ const people = Number(document.getElementById("people").value);
+ const ng = document.getElementById("ng").value;
 
-function buildMainDB(){
-  const items=[];
-  proteins.forEach(p=>{
-    styles.forEach(s=>{
-      if((p.key==='tofu' || p.key==='egg') && ['ハンバーグ','南蛮風'].includes(s.name)) return;
-      if(p.key==='fish' && ['ハンバーグ','つくね','そぼろ'].includes(s.name)) return;
-      const name = `${p.label}の${s.name}`;
-      items.push({
-        name,
-        cat:p.cat,
-        ingredients:[p.ingredients[0], s.veg ? 'キャベツ' : '玉ねぎ', s.veg ? 'にんじん' : ''],
-        cost:p.cost + s.adjust,
-        time:s.time,
-        bento:p.bento || s.tags.includes('弁当OK'),
-        prep:s.prep,
-        save:s.save,
-        frozen:0,
-        fish:p.fish,
-        tags:[...s.tags]
-      });
-    });
+ let resultHTML="";
+ let shopping = {};
+
+ let prevCat="";
+
+ for(let i=0;i<5;i++){
+
+  let list = meals.filter(m => !m.name.includes(ng) && m.cat!==prevCat);
+
+  let pick = list[Math.floor(Math.random()*list.length)];
+
+  prevCat = pick.cat;
+
+  resultHTML += `<div class="card">
+  ${pick.name}<br>
+  <span class="badge blue">たんぱく質</span>
+  ${pick.veg?'<span class="badge green">野菜</span>':''}
+  </div>`;
+
+  // 買い物合算
+  pick.ing.forEach(x=>{
+    let key = x.n;
+    let amount = x.a * people;
+
+    if(!shopping[key]) shopping[key]=0;
+    shopping[key]+=amount;
   });
-  // fixed practical dishes
-  const fixed = [
-    {name:'オムライス', cat:'洋食', ingredients:['卵','鶏肉','ご飯'], cost:420, time:20, bento:true, prep:0, save:0, frozen:0, fish:false, tags:['子ども向け','時短']},
-    {name:'ミートソースパスタ', cat:'麺', ingredients:['パスタ','ひき肉','トマト缶'], cost:430, time:22, bento:false, prep:1, save:1, frozen:0, fish:false, tags:['子ども向け']},
-    {name:'焼きそば', cat:'麺', ingredients:['焼きそば麺','豚こま肉','キャベツ'], cost:350, time:15, bento:false, prep:0, save:0, frozen:0, fish:false, tags:['時短','節約']},
-    {name:'焼きうどん', cat:'麺', ingredients:['うどん','豚こま肉','玉ねぎ'], cost:340, time:15, bento:false, prep:0, save:0, frozen:0, fish:false, tags:['時短','節約']},
-    {name:'クリームシチュー', cat:'洋食', ingredients:['鶏肉','じゃがいも','牛乳'], cost:520, time:30, bento:false, prep:1, save:1, frozen:0, fish:false, tags:['野菜多め']},
-    {name:'チキンカレー', cat:'カレー', ingredients:['鶏肉','じゃがいも','玉ねぎ'], cost:500, time:35, bento:false, prep:1, save:1, frozen:0, fish:false, tags:['作り置き','がっつり']},
-    {name:'ドライカレー', cat:'カレー', ingredients:['ひき肉','玉ねぎ','にんじん'], cost:430, time:20, bento:true, prep:1, save:1, frozen:0, fish:false, tags:['作り置き','時短']},
-    {name:'冷凍餃子＋野菜炒め', cat:'冷凍活用', ingredients:['冷凍餃子','キャベツ','もやし'], cost:360, time:12, bento:false, prep:0, save:0, frozen:1, fish:false, tags:['時短','節約']},
-    {name:'冷凍コロッケ＋千切りキャベツ', cat:'冷凍活用', ingredients:['冷凍コロッケ','キャベツ'], cost:330, time:10, bento:true, prep:0, save:0, frozen:1, fish:false, tags:['時短','弁当OK']},
-    {name:'冷凍唐揚げアレンジ丼', cat:'冷凍活用', ingredients:['冷凍唐揚げ','ご飯','卵'], cost:340, time:10, bento:true, prep:0, save:0, frozen:1, fish:false, tags:['時短','がっつり']}
-  ];
-  return [...items, ...fixed];
+
+ }
+
+ document.getElementById("result").innerHTML = resultHTML;
+
+ // 買い物リスト表示
+ let shopHTML="<div class='card'><b>買い物リスト</b><br>";
+
+ for(let k in shopping){
+   shopHTML += `${k} ${shopping[k]}<br>`;
+ }
+
+ shopHTML+="</div>";
+
+ document.getElementById("shopping").innerHTML = shopHTML;
 }
 
-const mains = buildMainDB();
-let currentPlan = [];
-let selectedPrefs = new Set(['時短','野菜多め']);
-
-function $(id){ return document.getElementById(id); }
-function val(id){ return $(id).value; }
-function parseList(v){ return v.split(/[、,\n]/).map(s=>s.trim()).filter(Boolean); }
-function saveSettings(){
-  localStorage.setItem('meal_ver5_settings', JSON.stringify({
-    monthlyBudget:val('monthlyBudget'), luxuryBudget:val('luxuryBudget'), householdSize:val('householdSize'), dinnerPersons:val('dinnerPersons'),
-    sideCount:val('sideCount'), bentoSchedule:val('bentoSchedule'), bentoPersons:val('bentoPersons'), snackFreq:val('snackFreq'),
-    breakfastStyle:val('breakfastStyle'), frozen:val('frozen'), dislikes:val('dislikes'), inventory:val('inventory'), prefs:[...selectedPrefs]
-  }));
-}
-function loadSettings(){
-  const s = JSON.parse(localStorage.getItem('meal_ver5_settings') || 'null');
-  if(!s) return;
-  Object.keys(s).forEach(k=>{ const el=$(k); if(el && k!=='prefs') el.value=s[k]; });
-  selectedPrefs = new Set(s.prefs || ['時短','野菜多め']);
-}
-function renderPrefButtons(){
-  $('prefButtons').innerHTML = prefOptions.map(p => `<button type="button" class="pref ${selectedPrefs.has(p)?'active':''}" data-pref="${p}">${p}</button>`).join('');
-  document.querySelectorAll('.pref').forEach(btn=>btn.addEventListener('click',()=>{
-    const p = btn.dataset.pref;
-    if(selectedPrefs.has(p)) selectedPrefs.delete(p); else selectedPrefs.add(p);
-    renderPrefButtons();
-  }));
-}
-function isWeekday(index){ return index < 5; }
-function monthBudgetPerDinner(){ return Math.max(200, ((+val('monthlyBudget') - +val('luxuryBudget')) / 30)); }
-function bentoEnabled(dayIndex){
-  const s = val('bentoSchedule');
-  if(s === 'なし') return false;
-  if(s === '毎日') return true;
-  return isWeekday(dayIndex);
-}
-function snackEnabled(dayIndex){
-  const s = val('snackFreq');
-  if(s === 'なし') return false;
-  if(s === '毎日少し') return true;
-  if(s === '週2回') return [1,4].includes(dayIndex);
-  if(s === '週3回') return [1,3,5].includes(dayIndex);
-  return false;
-}
-function breakfastFor(dayIndex){
-  const style = val('breakfastStyle');
-  if(style === 'ご飯派') return breakfastRice[dayIndex % breakfastRice.length];
-  if(style === 'パン派') return breakfastBread[dayIndex % breakfastBread.length];
-  return dayIndex % 3 === 0 ? breakfastBread[dayIndex % breakfastBread.length] : breakfastRice[dayIndex % breakfastRice.length];
-}
-function dislikeBlocked(item, dislikes){
-  const text = `${item.name},${item.cat},${(item.ingredients||[]).join(',')},${(item.tags||[]).join(',')}`;
-  return dislikes.some(d => {
-    if(['魚','魚介','青魚'].includes(d) && (item.fish || item.cat === '魚')) return true;
-    return text.includes(d);
-  });
-}
-function prefScore(item){
-  let s = 0;
-  if(selectedPrefs.has('時短')) s += item.time <= 20 ? 22 : -8;
-  if(selectedPrefs.has('節約')) s += item.cost <= monthBudgetPerDinner()*1.05 ? 18 : -10;
-  if(selectedPrefs.has('野菜多め')) s += item.tags.includes('野菜多め') ? 22 : -6;
-  if(selectedPrefs.has('がっつり')) s += item.tags.includes('がっつり') ? 18 : item.cat === '牛' ? 14 : -4;
-  if(selectedPrefs.has('あっさり')) s += item.tags.includes('ヘルシー') ? 18 : -4;
-  if(selectedPrefs.has('子ども向け')) s += item.tags.includes('子ども向け') ? 18 : -2;
-  if(selectedPrefs.has('作り置き')) s += item.save ? 18 : -4;
-  if(selectedPrefs.has('ヘルシー')) s += item.tags.includes('ヘルシー') ? 18 : -4;
-  return s;
-}
-function scoreMain(item, context){
-  const {usedNames, recentCats, dislikes, inventory, weekIndex, dayIndex} = context;
-  let s = 0;
-  if(usedNames.has(item.name)) s -= 200;
-  if(recentCats.includes(item.cat)) s -= 55;
-  if(dislikeBlocked(item, dislikes)) s -= 500;
-  inventory.forEach(x => { if((item.ingredients||[]).join(',').includes(x)) s += 12; });
-  if(bentoEnabled(dayIndex) && item.bento) s += 16;
-  if(!bentoEnabled(dayIndex) && item.time <= 20) s += 8;
-  if(val('frozen') === 'なるべく使わない' && item.frozen) s -= 45;
-  if(val('frozen') === 'たまに使う' && item.frozen) s += ((weekIndex + dayIndex) % 6 === 0 ? 8 : -20);
-  if(val('frozen') === 'よく使う' && item.frozen) s += 10;
-  if(item.cat === '麺' && dayIndex > 0 && context.week.some(x => x.main.cat === '麺')) s -= 80;
-  if(item.cat === 'カレー' && context.week.some(x => x.main.cat === 'カレー')) s -= 80;
-  s += prefScore(item);
-  s += Math.random()*5;
-  return s;
-}
-function chooseSides(n, usedSideNames){
-  let pool = sidePool.filter(x => !usedSideNames.has(x.name));
-  if(selectedPrefs.has('野菜多め')) pool = pool.sort((a,b)=>(b.tags.includes('野菜多め')?1:0) - (a.tags.includes('野菜多め')?1:0));
-  if(selectedPrefs.has('時短')) pool = pool.sort((a,b)=>(b.tags.includes('時短')?1:0) - (a.tags.includes('時短')?1:0));
-  const chosen = [];
-  for(let i=0;i<n && pool.length;i++){
-    const idx = i === 0 ? 0 : Math.floor(Math.random()*Math.min(pool.length, 6));
-    const item = pool.splice(idx,1)[0];
-    chosen.push(item);
-    usedSideNames.add(item.name);
-  }
-  return chosen;
-}
-function chooseSnack(dayIndex){
-  if(!snackEnabled(dayIndex)) return null;
-  let pool = [...snackPool];
-  if(selectedPrefs.has('おやつあり') && selectedPrefs.has('ヘルシー')) pool.sort((a,b)=>(b.tags.includes('ヘルシー')?1:0)-(a.tags.includes('ヘルシー')?1:0));
-  return pool[(dayIndex*3 + 1) % pool.length];
-}
-function makePrompt(day){
-  return `${day.main.name} のレシピを教えて\n` +
-    `条件：${val('dinnerPersons')}人分、時短、家計向け` + (day.main.bento ? '、弁当向けアレンジあり' : '') + (day.main.save ? '、作り置き可' : '') + `\n` +
-    `副菜候補：${day.sides.map(x=>x.name).join('、')}`;
-}
-async function copyPrompt(text){
-  try{ await navigator.clipboard.writeText(text); alert('Gemini用の質問文をコピーしました'); }
-  catch(e){ alert('コピーできませんでした。長押しで選択してください。'); }
-}
-function geminiOpen(){ window.open('https://gemini.google.com/app', '_blank', 'noopener'); }
-function buildPlan(){
-  saveSettings();
-  const dislikes = parseList(val('dislikes'));
-  const inventory = parseList(val('inventory'));
-  const usedNames = new Set();
-  const usedSideNames = new Set();
-  const recentCats = [];
-  currentPlan = [];
-  for(let w=0; w<4; w++){
-    const week = [];
-    for(let d=0; d<7; d++){
-      const context = {usedNames, recentCats: recentCats.slice(-2), dislikes, inventory, weekIndex:w, dayIndex:d, week};
-      const candidates = [...mains]
-        .map(item => ({item, score: scoreMain(item, context)}))
-        .sort((a,b)=>b.score-a.score)
-        .slice(0, 12);
-      const selected = candidates[Math.floor(Math.random()*Math.min(3, candidates.length))].item;
-      usedNames.add(selected.name);
-      recentCats.push(selected.cat);
-      const sides = chooseSides(+val('sideCount'), usedSideNames);
-      const breakfast = breakfastFor(w*7 + d);
-      const snack = chooseSnack(d);
-      const bento = bentoEnabled(d)
-        ? {
-            persons: +val('bentoPersons'),
-            main: selected.bento ? `${selected.name}の取り分け` : '卵焼き・ウインナー中心',
-            sides: [
-              sides[0]?.name || '卵焼き',
-              sides[1]?.name || ((val('frozen')==='なるべく使わない') ? 'ミニトマト' : '冷凍ブロッコリー'),
-              selected.save ? '前日作り置き' : '即席副菜'
-            ]
-          }
-        : null;
-      week.push({day:['月','火','水','木','金','土','日'][d], main:selected, breakfast, bento, sides, snack});
-    }
-    currentPlan.push(week);
-  }
-  render();
-}
-function rerollWeek1(){
-  if(!currentPlan.length){ buildPlan(); return; }
-  const keep = currentPlan.slice(1).flat().map(x=>x.main.name);
-  const dislikes = parseList(val('dislikes'));
-  const inventory = parseList(val('inventory'));
-  const usedNames = new Set(keep);
-  const usedSideNames = new Set();
-  const recentCats = [];
-  const week = [];
-  for(let d=0; d<7; d++){
-    const context = {usedNames, recentCats: recentCats.slice(-2), dislikes, inventory, weekIndex:0, dayIndex:d, week};
-    const candidates = [...mains]
-      .map(item => ({item, score: scoreMain(item, context)}))
-      .sort((a,b)=>b.score-a.score)
-      .slice(0, 12);
-    const selected = candidates[Math.floor(Math.random()*Math.min(3, candidates.length))].item;
-    usedNames.add(selected.name); recentCats.push(selected.cat);
-    const sides = chooseSides(+val('sideCount'), usedSideNames);
-    week.push({day:['月','火','水','木','金','土','日'][d], main:selected, breakfast:breakfastFor(d), bento:bentoEnabled(d)?{persons:+val('bentoPersons'), main:selected.bento?`${selected.name}の取り分け`:'卵焼き・ウインナー中心', sides:[sides[0]?.name || '卵焼き', sides[1]?.name || 'ミニトマト', selected.save ? '前日作り置き' : '即席副菜']}:null, sides, snack:chooseSnack(d)});
-  }
-  currentPlan[0] = week;
-  render();
-}
-function badgeHTML(main){
-  const badges = [];
-  badges.push(`<span class="badge time">${main.time}分</span>`);
-  if(main.bento) badges.push('<span class="badge bento">弁当OK</span>');
-  if(main.tags.includes('野菜多め')) badges.push('<span class="badge veg">野菜多め</span>');
-  if(main.tags.includes('がっつり')) badges.push('<span class="badge heavy">がっつり</span>');
-  if(main.save) badges.push('<span class="badge save">作り置き可</span>');
-  if(main.tags.includes('子ども向け')) badges.push('<span class="badge kids">子ども向け</span>');
-  return badges.join('');
-}
-function renderStats(){
-  const dinners = currentPlan.flat();
-  const foodBudget = (+val('monthlyBudget') - +val('luxuryBudget'));
-  const est = dinners.reduce((a,x)=>a + x.main.cost + (x.sides.length*90) + (x.snack ? x.snack.cost : 0), 0);
-  const remain = Math.round(foodBudget - est);
-  const bentoCount = dinners.filter((x,i)=>bentoEnabled(i%7)).length;
-  const snackCount = dinners.filter((x,i)=>snackEnabled(i%7)).length;
-  $('stats').innerHTML = `
-    <div class="stat"><div class="k">食費原資</div><div class="v">¥${foodBudget.toLocaleString()}</div></div>
-    <div class="stat"><div class="k">概算使用</div><div class="v">¥${Math.round(est).toLocaleString()}</div></div>
-    <div class="stat"><div class="k">残り見込み</div><div class="v">¥${remain.toLocaleString()}</div></div>
-    <div class="stat"><div class="k">弁当回数</div><div class="v">${bentoCount}回</div></div>
-    <div class="stat"><div class="k">おやつ回数</div><div class="v">${snackCount}回</div></div>`;
-}
-function renderMonth(){
-  $('monthPlan').innerHTML = currentPlan.map((week,i)=>`
-    <div class="week">
-      <h3>第${i+1}週</h3>
-      <div class="list">${week.map(d=>`<div>• ${d.day}：${d.main.name}${d.bento ? ' / 弁当あり' : ''}${d.snack ? ' / おやつ' : ''}</div>`).join('')}</div>
-    </div>`).join('');
-}
-function renderWeek1(){
-  const week = currentPlan[0] || [];
-  $('weekDetail').innerHTML = week.map(d=>{
-    const prompt = makePrompt(d);
-    return `
-    <div class="meal">
-      <h4>${d.day}：${d.main.name}</h4>
-      <div class="meta">
-        <span class="pill">${d.main.cat}</span>
-        <span class="pill">約¥${d.main.cost}</span>
-        ${d.main.tags.map(t=>`<span class="pill">${t}</span>`).join('')}
-      </div>
-      <div class="badges">${badgeHTML(d.main)}</div>
-      <div><strong>朝：</strong>${d.breakfast}</div>
-      <div><strong>夜の副菜：</strong>${d.sides.map(x=>x.name).join(' / ')}</div>
-      <div><strong>夜の主材料：</strong>${d.main.ingredients.filter(Boolean).join('、')}</div>
-      <div><strong>弁当：</strong>${d.bento ? `${d.bento.persons}人分 / 主菜：${d.bento.main} / 副菜：${d.bento.sides.join(' / ')}` : 'なし'}</div>
-      <div><strong>おやつ：</strong>${d.snack ? `${d.snack.name}（約¥${d.snack.cost}）` : 'なし'}</div>
-      <div class="toolbar" style="margin-top:8px">
-        <button type="button" class="ghost" onclick="geminiOpen()">Geminiを開く</button>
-        <button type="button" class="secondary" onclick='copyPrompt(${JSON.stringify(prompt)})'>質問文をコピー</button>
-      </div>
-      <div class="prompt">${prompt}</div>
-      <div class="mini">iPhoneではGemini側の仕様で自動入力が入らない場合があります。そのときは「質問文をコピー」を使ってください。</div>
-    </div>`;
-  }).join('');
-}
-function renderShopping(){
-  const week = currentPlan[0] || [];
-  const groups = {野菜:new Set(), 肉魚:new Set(), 主食:new Set(), その他:new Set()};
-  week.forEach(d=>{
-    d.main.ingredients.forEach(x=>{
-      if(!x) return;
-      if(/キャベツ|玉ねぎ|にんじん|じゃがいも|もやし|ブロッコリー|れんこん|きゅうり|かぼちゃ|小松菜|ほうれん草/.test(x)) groups['野菜'].add(x);
-      else if(/鶏|豚|牛|ひき肉|卵|豆腐|鮭|さば|たら|ウインナー/.test(x)) groups['肉魚'].add(x);
-      else if(/ご飯|パスタ|うどん|焼きそば麺/.test(x)) groups['主食'].add(x);
-      else groups['その他'].add(x);
-    });
-    d.sides.forEach(s=>groups['野菜'].add(s.name));
-    if(d.snack) groups['その他'].add(d.snack.name);
-  });
-  $('shoppingList').innerHTML = Object.entries(groups).map(([k,v])=>`
-    <div class="list-card">
-      <h4>${k}</h4>
-      <div class="list">${[...v].length ? [...v].map(x=>`<div>• ${x}</div>`).join('') : '<div>なし</div>'}</div>
-    </div>`).join('');
-}
-function render(){ renderStats(); renderMonth(); renderWeek1(); renderShopping(); }
-
-$('generateBtn').addEventListener('click', buildPlan);
-$('rerollBtn').addEventListener('click', rerollWeek1);
-loadSettings(); renderPrefButtons(); buildPlan();
 </script>
+
 </body>
 </html>
