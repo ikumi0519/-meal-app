@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="献立予算" />
+  <title>献立予算プランナー</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #f7f7f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #0f766e;
+      --accent-soft: #ccfbf1;
+      --danger: #b91c1c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 10px 0 30px; }
+    .title { font-size: 26px; font-weight: 700; margin: 8px 0 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .section-title { font-size: 17px; font-weight: 700; margin: 0 0 12px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px;
+      padding: 12px; font-size: 16px; background: white;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    button {
+      border: 0; border-radius: 12px; padding: 13px 16px; font-size: 15px; font-weight: 700;
+      background: var(--accent); color: white;
+    }
+    button.secondary { background: #374151; }
+    button.ghost { background: var(--accent-soft); color: #115e59; }
+    .pill {
+      display:inline-block; padding: 6px 10px; border-radius: 999px; background: var(--accent-soft);
+      color: #115e59; font-size: 12px; font-weight: 700; margin: 3px 6px 3px 0;
+    }
+    .metric { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .metric .box {
+      padding: 12px; border-radius: 14px; background: #fafafa; border: 1px solid var(--line);
+    }
+    .metric .k { font-size: 12px; color: var(--muted); }
+    .metric .v { font-size: 20px; font-weight: 800; margin-top: 4px; }
+    .week { border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+    .day { padding: 10px 0; border-bottom: 1px dashed var(--line); }
+    .day:last-child { border-bottom: 0; }
+    .dayhead { font-weight: 700; margin-bottom: 6px; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 4px 0; }
+    .warn { color: var(--danger); font-weight: 700; }
+    .footer-note { color: var(--muted); font-size: 12px; }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: 1fr; }
+      .metric { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">献立予算プランナー</div>
+    <div class="sub">1か月献立・1週間メニュー・買い物リスト・作り置き・お弁当候補</div>
+
+    <div class="card">
+      <div class="section-title">設定</div>
+      <div class="grid">
+        <div>
+          <label>月の食費予算（円）</label>
+          <input id="monthlyBudget" type="number" value="50000" />
+        </div>
+        <div>
+          <label>嗜好品予算（円）</label>
+          <input id="snackBudget" type="number" value="5000" />
+        </div>
+        <div>
+          <label>人数</label>
+          <input id="familySize" type="number" value="3" min="1" max="10" />
+        </div>
+        <div>
+          <label>副菜の品数</label>
+          <select id="sideCount">
+            <option value="1">1品</option>
+            <option value="2" selected>2品</option>
+            <option value="3">3品</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>好きなもの（カンマ区切り）</label>
+          <input id="likes" type="text" value="鶏肉, 豚肉, 卵, カレー, 和食" />
+        </div>
+        <div class="full">
+          <label>避けたいもの（カンマ区切り）</label>
+          <input id="dislikes" type="text" value="" />
+        </div>
+        <div class="full">
+          <label>メモ</label>
+          <textarea id="memo" placeholder="例：金曜は麺類にしたい、弁当は冷めてもおいしいもの重視"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="generateBtn">1か月献立を作成</button>
+        <button id="weekBtn" class="secondary">1週目だけ再作成</button>
+        <button id="saveBtn" class="ghost">設定を保存</button>
+      </div>
+      <div class="footer-note" style="margin-top:10px;">Safariで開いてホーム画面に追加すると、アプリのように使えます。</div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">予算サマリー</div>
+      <div class="metric">
+        <div class="box">
+          <div class="k">月予算</div>
+          <div class="v" id="mBudgetView">¥0</div>
+        </div>
+        <div class="box">
+          <div class="k">今週概算</div>
+          <div class="v" id="weekCostView">¥0</div>
+        </div>
+        <div class="box">
+          <div class="k">月残予算</div>
+          <div class="v" id="remainView">¥0</div>
+        </div>
+      </div>
+      <div id="budgetWarn" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">1週間メニュー</div>
+      <div id="weekMenu"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">今週の買い物リスト</div>
+      <div id="shoppingList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">作り置き</div>
+      <div id="prepList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">お弁当ストック</div>
+      <div id="bentoList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">1か月の主菜一覧</div>
+      <div id="monthPlan"></div>
+    </div>
+  </div>
+
+<script>
+const master = [
+  {name:'鶏の照り焼き', cat:'和食', cost:780, main:'鶏肉', items:['鶏もも肉','しょうゆ','みりん','砂糖','レタス'], prep:['照り焼き下味冷凍'], bento:['照り焼きチキン']},
+  {name:'豚しょうが焼き', cat:'和食', cost:760, main:'豚肉', items:['豚こま','玉ねぎ','しょうが','しょうゆ','キャベツ'], prep:['しょうが焼き下味冷凍'], bento:['豚しょうが焼き']},
+  {name:'親子丼', cat:'和食', cost:690, main:'卵', items:['鶏もも肉','卵','玉ねぎ','めんつゆ','のり'], prep:['玉ねぎスライス'], bento:['親子丼の具']},
+  {name:'カレーライス', cat:'洋食', cost:920, main:'カレー', items:['豚肉','じゃがいも','玉ねぎ','にんじん','カレールウ'], prep:['カレー多め仕込み'], bento:['ドライカレー風']},
+  {name:'ハンバーグ', cat:'洋食', cost:980, main:'ひき肉', items:['合いびき肉','玉ねぎ','パン粉','卵','ケチャップ'], prep:['ハンバーグ成形冷凍'], bento:['ミニハンバーグ']},
+  {name:'オムライス', cat:'洋食', cost:850, main:'卵', items:['卵','鶏肉','玉ねぎ','ごはん','ケチャップ'], prep:['チキンライス仕込み'], bento:['オムライスおにぎり']},
+  {name:'焼きそば', cat:'中華', cost:720, main:'麺', items:['中華麺','豚こま','キャベツ','もやし','ソース'], prep:['野菜カット'], bento:['焼きそば']},
+  {name:'八宝菜', cat:'中華', cost:910, main:'豚肉', items:['豚肉','白菜','にんじん','しいたけ','うずら卵'], prep:['野菜ミックス'], bento:['中華炒め']},
+  {name:'麻婆豆腐', cat:'中華', cost:730, main:'豆腐', items:['豆腐','ひき肉','長ねぎ','麻婆の素'], prep:['ねぎみじん切り'], bento:['麻婆そぼろ']},
+  {name:'鮭の塩焼き', cat:'和食', cost:960, main:'魚', items:['鮭','大根','しょうゆ','小松菜'], prep:['小松菜下茹で'], bento:['焼き鮭ほぐし']},
+  {name:'鯖みそ', cat:'和食', cost:880, main:'魚', items:['さば','味噌','しょうが','砂糖'], prep:['みそだれ作成'], bento:['鯖ほぐし']},
+  {name:'鶏むね南蛮', cat:'和食', cost:790, main:'鶏肉', items:['鶏むね肉','卵','小麦粉','酢','タルタルソース'], prep:['南蛮だれ'], bento:['チキン南蛮']},
+  {name:'肉じゃが', cat:'和食', cost:800, main:'豚肉', items:['豚肉','じゃがいも','玉ねぎ','にんじん','しらたき'], prep:['野菜カット'], bento:['肉じゃが']},
+  {name:'チャーハン', cat:'中華', cost:640, main:'ごはん', items:['ごはん','卵','ねぎ','ハム'], prep:['ねぎみじん切り'], bento:['焼き飯']},
+  {name:'クリームシチュー', cat:'洋食', cost:930, main:'鶏肉', items:['鶏肉','じゃがいも','玉ねぎ','にんじん','シチュールウ'], prep:['シチュー多め仕込み'], bento:['シチューグラタン風']},
+  {name:'ミートソースパスタ', cat:'洋食', cost:840, main:'ひき肉', items:['パスタ','ひき肉','玉ねぎ','トマト缶'], prep:['ソース作り置き'], bento:['ミートソースドリア風']},
+];
+
+const sideDishPool = ['きんぴらごぼう','ポテトサラダ','ほうれん草のおひたし','きゅうりの浅漬け','切り干し大根','ブロッコリー胡麻和え','にんじんしりしり','マカロニサラダ'];
+const weekNames = ['月','火','水','木','金','土','日'];
+let monthPlan = [];
+
+function yen(n){ return '¥' + Number(n||0).toLocaleString('ja-JP'); }
+function parseList(v){ return (v||'').split(',').map(s => s.trim()).filter(Boolean); }
+function sample(arr, n){
+  const copy = [...arr]; const out = [];
+  while (copy.length && out.length < n){ out.push(copy.splice(Math.floor(Math.random()*copy.length),1)[0]); }
+  return out;
+}
+function matchesRecipe(recipe, likes, dislikes, recentMains){
+  const dislikeHit = dislikes.some(d => recipe.name.includes(d) || recipe.main.includes(d) || recipe.cat.includes(d) || recipe.items.some(i=>i.includes(d)));
+  if (dislikeHit) return false;
+  if (recentMains.has(recipe.name)) return false;
+  if (!likes.length) return true;
+  return likes.some(l => recipe.name.includes(l) || recipe.main.includes(l) || recipe.cat.includes(l));
+}
+function pickRecipe(pool, likes, dislikes, recentMains){
+  let filtered = pool.filter(r => matchesRecipe(r, likes, dislikes, recentMains));
+  if (!filtered.length) filtered = pool.filter(r => !dislikes.some(d => r.name.includes(d) || r.main.includes(d) || r.items.some(i=>i.includes(d))));
+  if (!filtered.length) filtered = pool;
+  const chosen = filtered[Math.floor(Math.random()*filtered.length)];
+  recentMains.add(chosen.name);
+  if (recentMains.size > 6) recentMains.delete([...recentMains][0]);
+  return chosen;
+}
+function makeWeek(weekNo, likes, dislikes, recentMains, sideCount){
+  return Array.from({length:7}).map((_, i) => {
+    const main = pickRecipe(master, likes, dislikes, recentMains);
+    const sides = sample(sideDishPool, Number(sideCount));
+    return { day: weekNames[i], main, sides, weekNo };
+  });
+}
+function makeMonth(){
+  const likes = parseList(document.getElementById('likes').value);
+  const dislikes = parseList(document.getElementById('dislikes').value);
+  const sideCount = Number(document.getElementById('sideCount').value);
+  const recentMains = new Set(JSON.parse(localStorage.getItem('recentMains') || '[]'));
+  monthPlan = [];
+  for(let w=1; w<=4; w++) monthPlan.push(makeWeek(w, likes, dislikes, recentMains, sideCount));
+  localStorage.setItem('recentMains', JSON.stringify([...recentMains]));
+  renderAll();
+}
+function remakeWeek1(){
+  const likes = parseList(document.getElementById('likes').value);
+  const dislikes = parseList(document.getElementById('dislikes').value);
+  const sideCount = Number(document.getElementById('sideCount').value);
+  const recentMains = new Set(JSON.parse(localStorage.getItem('recentMains') || '[]'));
+  monthPlan[0] = makeWeek(1, likes, dislikes, recentMains, sideCount);
+  localStorage.setItem('recentMains', JSON.stringify([...recentMains]));
+  renderAll();
+}
+function renderAll(){
+  if (!monthPlan.length) return;
+  const monthlyBudget = Number(document.getElementById('monthlyBudget').value || 0);
+  const snackBudget = Number(document.getElementById('snackBudget').value || 0);
+  const week1 = monthPlan[0];
+  const weekCost = week1.reduce((a,d)=>a+d.main.cost,0);
+  const monthEstimate = monthPlan.flat().reduce((a,d)=>a+d.main.cost,0) + snackBudget;
+  const remain = monthlyBudget - monthEstimate;
+
+  document.getElementById('mBudgetView').textContent = yen(monthlyBudget);
+  document.getElementById('weekCostView').textContent = yen(weekCost);
+  document.getElementById('remainView').textContent = yen(remain);
+  document.getElementById('budgetWarn').innerHTML = remain < 0
+    ? `<div class="warn">予算オーバー見込みです。約 ${yen(Math.abs(remain))} 超過です。</div>`
+    : `<div>予算内です。余力は約 <strong>${yen(remain)}</strong> です。</div>`;
+
+  document.getElementById('weekMenu').innerHTML = `<div class="week">${week1.map((d,idx)=>`
+    <div class="day">
+      <div class="dayhead">${d.day}曜日　${d.main.name}</div>
+      <div>副菜：${d.sides.join(' / ')}</div>
+      <div class="footer-note">概算 ${yen(d.main.cost)}</div>
+    </div>`).join('')}</div>`;
+
+  const shopMap = new Map();
+  week1.forEach(d => d.main.items.forEach(item => shopMap.set(item, (shopMap.get(item)||0)+1)));
+  document.getElementById('shoppingList').innerHTML = `<ul>${[...shopMap.entries()].sort((a,b)=>a[0].localeCompare(b[0],'ja')).map(([k,v])=>`<li>${k} × ${v}</li>`).join('')}</ul>`;
+
+  const preps = [...new Set(week1.flatMap(d => d.main.prep))];
+  document.getElementById('prepList').innerHTML = preps.map(x=>`<span class="pill">${x}</span>`).join('') || 'なし';
+
+  const bentos = [...new Set(week1.flatMap(d => d.main.bento))];
+  document.getElementById('bentoList').innerHTML = bentos.map(x=>`<span class="pill">${x}</span>`).join('') || 'なし';
+
+  document.getElementById('monthPlan').innerHTML = monthPlan.map((week,widx)=>`
+    <div class="week">
+      <div class="dayhead">第${widx+1}週</div>
+      <ul>${week.map(d=>`<li>${d.day}：${d.main.name}</li>`).join('')}</ul>
+    </div>`).join('');
+}
+function saveSettings(){
+  const settings = {
+    monthlyBudget: document.getElementById('monthlyBudget').value,
+    snackBudget: document.getElementById('snackBudget').value,
+    familySize: document.getElementById('familySize').value,
+    sideCount: document.getElementById('sideCount').value,
+    likes: document.getElementById('likes').value,
+    dislikes: document.getElementById('dislikes').value,
+    memo: document.getElementById('memo').value,
+  };
+  localStorage.setItem('mealPlannerSettings', JSON.stringify(settings));
+}
+function loadSettings(){
+  const s = JSON.parse(localStorage.getItem('mealPlannerSettings') || '{}');
+  Object.entries(s).forEach(([k,v]) => {
+    const el = document.getElementById(k);
+    if (el) el.value = v;
+  });
+}
+
+document.getElementById('generateBtn').addEventListener('click', () => { saveSettings(); makeMonth(); });
+document.getElementById('weekBtn').addEventListener('click', () => { saveSettings(); if (!monthPlan.length) makeMonth(); else remakeWeek1(); });
+document.getElementById('saveBtn').addEventListener('click', saveSettings);
+
+loadSettings();
+makeMonth();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+</script>
+</body>
+</html>
