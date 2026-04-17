@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>献立予算プランナー Ver4</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--line:#e3e7ef;--text:#1f2937;--muted:#6b7280;--accent:#2563eb;--accent2:#eef4ff;--ok:#0f766e}
+    *{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px} h1{font-size:28px;margin:0 0 6px} .sub{color:var(--muted);margin-bottom:14px}
+    .grid{display:grid;grid-template-columns:340px 1fr;gap:14px} .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px} input,select,textarea,button{width:100%;font:inherit;border-radius:12px;border:1px solid var(--line);padding:12px;background:#fff}
+    textarea{min-height:72px;resize:vertical} .row2,.row3{display:grid;gap:10px}.row2{grid-template-columns:1fr 1fr}.row3{grid-template-columns:1fr 1fr 1fr}
+    button{background:var(--accent);color:#fff;border:none;font-weight:700;cursor:pointer} button.secondary{background:#fff;color:var(--accent);border:1px solid #bfd1ff}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar button{width:auto;padding:10px 14px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fbfcff}.k{font-size:12px;color:var(--muted)}.v{font-size:22px;font-weight:800;margin-top:4px}
+    .weeks{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.week{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff}.week h3{margin:0 0 10px}
+    .meal{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;background:#fcfdff}.meal h4{margin:0 0 8px;font-size:17px}
+    .meta{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.pill{display:inline-block;background:var(--accent2);color:var(--accent);padding:4px 8px;border-radius:999px;font-size:12px}
+    .small{font-size:12px;color:var(--muted)} ul{margin:8px 0 0 18px;padding:0} li{margin:4px 0} .list{line-height:1.8}
+    .linkbtn{display:inline-block;background:#fff;border:1px solid #bfd1ff;color:var(--accent);padding:8px 10px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:8px}
+    .section-title{margin:0 0 10px;font-size:20px} .stack{display:flex;flex-direction:column;gap:12px}
+    @media(max-width:900px){.grid,.weeks,.stats,.row2,.row3{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>献立予算プランナー Ver4</h1>
+  <div class="sub">朝ごはん・夕食・毎日のお弁当を連動。レシピ詳細はGeminiへそのまま渡せます。</div>
+
+  <div class="grid">
+    <div class="card stack">
+      <div>
+        <h2 class="section-title">条件</h2>
+        <label>月予算（円）</label>
+        <input id="monthlyBudget" type="number" value="50000" min="10000" step="1000">
+        <div class="row2">
+          <div>
+            <label>嗜好品予算（円）</label>
+            <input id="luxuryBudget" type="number" value="5000" min="0" step="500">
+          </div>
+          <div>
+            <label>人数</label>
+            <input id="householdSize" type="number" value="3" min="1" max="8">
+          </div>
+        </div>
+        <div class="row3">
+          <div>
+            <label>副菜数</label>
+            <select id="sideCount"><option>1</option><option selected>2</option><option>3</option></select>
+          </div>
+          <div>
+            <label>弁当頻度</label>
+            <select id="bentoFreq"><option>週2〜3回</option><option selected>毎日</option><option>なし</option></select>
+          </div>
+          <div>
+            <label>冷凍食品</label>
+            <select id="frozen"><option selected>たまに使う</option><option>なるべく使わない</option><option>よく使う</option></select>
+          </div>
+        </div>
+        <label>好きな食材・料理（カンマ区切り）</label>
+        <textarea id="likes">鶏肉, 豚こま, 卵, 豆腐, ハンバーグ, 生姜焼き, 唐揚げ, 肉じゃが</textarea>
+        <label>避けたいもの（カンマ区切り）</label>
+        <textarea id="dislikes">ナッツ</textarea>
+        <label>家にあるもの（カンマ区切り）</label>
+        <textarea id="inventory">卵, 玉ねぎ, じゃがいも, にんじん</textarea>
+        <div class="toolbar" style="margin-top:12px">
+          <button id="generateBtn">1か月献立を作る</button>
+          <button id="rerollBtn" class="secondary">1週目だけ再作成</button>
+        </div>
+      </div>
+      <div class="small">設計方針：夜ごはん → 翌日の弁当 → 朝ごはんの流れで回します。レシピ詳細はGeminiへ直接渡します。</div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h2 class="section-title">集計</h2>
+        <div id="stats" class="stats"></div>
+      </div>
+      <div class="card">
+        <h2 class="section-title">1週目の詳細</h2>
+        <div id="weekDetail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2 class="section-title">1か月の主菜一覧</h2>
+    <div id="monthPlan" class="weeks"></div>
+  </div>
+</div>
+
+<script>
+const mains = [
+ {name:'鶏の照り焼き', cat:'鶏', cost:420, time:20, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き','時短']},
+ {name:'豚の生姜焼き', cat:'豚', cost:430, time:18, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き','時短']},
+ {name:'ハンバーグ', cat:'ひき肉', cost:520, time:30, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'肉じゃが', cat:'煮物', cost:430, time:30, bento:1, prep:1, frozen:0, tags:['ご飯','作り置き']},
+ {name:'麻婆豆腐', cat:'中華', cost:360, time:15, bento:0, prep:0, frozen:0, tags:['ご飯','時短']},
+ {name:'八宝菜', cat:'中華', cost:460, time:20, bento:0, prep:0, frozen:0, tags:['ご飯','野菜多め']},
+ {name:'鶏の唐揚げ', cat:'鶏', cost:530, time:30, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'鶏むね南蛮', cat:'鶏', cost:470, time:25, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'豚こま甘辛炒め', cat:'豚', cost:390, time:15, bento:1, prep:1, frozen:0, tags:['ご飯','時短']},
+ {name:'回鍋肉', cat:'中華', cost:450, time:18, bento:1, prep:0, frozen:0, tags:['ご飯','野菜多め']},
+ {name:'青椒肉絲', cat:'中華', cost:480, time:18, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'鶏とじゃがいもの甘辛煮', cat:'煮物', cost:430, time:28, bento:1, prep:1, frozen:0, tags:['ご飯','作り置き']},
+ {name:'鮭のムニエル', cat:'魚', cost:560, time:20, bento:1, prep:0, frozen:0, tags:['ご飯']},
+ {name:'鮭の塩焼き', cat:'魚', cost:540, time:15, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'さば味噌煮', cat:'魚', cost:520, time:20, bento:1, prep:1, frozen:0, tags:['ご飯','作り置き']},
+ {name:'鶏そぼろ丼', cat:'鶏', cost:380, time:18, bento:1, prep:1, frozen:0, tags:['ご飯','作り置き','時短']},
+ {name:'オムライス', cat:'洋食', cost:420, time:20, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'ドライカレー', cat:'洋食', cost:430, time:20, bento:1, prep:1, frozen:0, tags:['ご飯','作り置き']},
+ {name:'チキンカレー', cat:'カレー', cost:500, time:35, bento:0, prep:1, frozen:0, tags:['ご飯','作り置き']},
+ {name:'クリームシチュー', cat:'洋食', cost:520, time:30, bento:0, prep:0, frozen:0, tags:['ご飯']},
+ {name:'ミートソースパスタ', cat:'麺', cost:420, time:20, bento:0, prep:1, frozen:0, tags:['麺']},
+ {name:'焼きそば', cat:'麺', cost:350, time:15, bento:0, prep:0, frozen:0, tags:['麺','時短']},
+ {name:'焼きうどん', cat:'麺', cost:340, time:15, bento:0, prep:0, frozen:0, tags:['麺','時短']},
+ {name:'豚丼', cat:'豚', cost:400, time:15, bento:1, prep:0, frozen:0, tags:['ご飯','時短']},
+ {name:'鶏の味噌焼き', cat:'鶏', cost:420, time:18, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'油淋鶏', cat:'鶏', cost:500, time:25, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'厚揚げと豚肉の炒め物', cat:'豚', cost:390, time:15, bento:1, prep:0, frozen:0, tags:['ご飯','時短']},
+ {name:'豆腐ハンバーグ', cat:'ひき肉', cost:400, time:28, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'照り焼きつくね', cat:'ひき肉', cost:380, time:20, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'鶏と野菜の黒酢炒め', cat:'中華', cost:460, time:20, bento:1, prep:0, frozen:0, tags:['ご飯','野菜多め']},
+ {name:'チャーハン', cat:'ご飯もの', cost:320, time:12, bento:1, prep:0, frozen:0, tags:['ご飯','時短']},
+ {name:'親子丼', cat:'ご飯もの', cost:390, time:15, bento:0, prep:0, frozen:0, tags:['ご飯','時短']},
+ {name:'そぼろ三色丼', cat:'ご飯もの', cost:380, time:18, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'冷凍餃子＋野菜炒め', cat:'冷凍活用', cost:360, time:12, bento:0, prep:0, frozen:1, tags:['ご飯','時短']},
+ {name:'冷凍コロッケ＋千切りキャベツ', cat:'冷凍活用', cost:330, time:10, bento:1, prep:0, frozen:1, tags:['ご飯','時短','弁当向き']},
+ {name:'冷凍唐揚げアレンジ丼', cat:'冷凍活用', cost:340, time:10, bento:1, prep:0, frozen:1, tags:['ご飯','時短','弁当向き']},
+ {name:'豚しゃぶサラダ', cat:'豚', cost:420, time:15, bento:0, prep:0, frozen:0, tags:['野菜多め']},
+ {name:'鶏とブロッコリーの塩炒め', cat:'鶏', cost:430, time:15, bento:1, prep:0, frozen:0, tags:['ご飯','野菜多め']},
+ {name:'れんこんつくね', cat:'ひき肉', cost:430, time:22, bento:1, prep:1, frozen:0, tags:['ご飯','弁当向き']},
+ {name:'チキンピカタ', cat:'鶏', cost:430, time:18, bento:1, prep:0, frozen:0, tags:['ご飯','弁当向き']}
+];
+const sides = [
+ 'きんぴらごぼう','ひじき煮','ほうれん草ごま和え','小松菜の煮びたし','にんじんしりしり','ブロッコリー塩ゆで','もやしナムル','ポテトサラダ','マカロニサラダ','切り干し大根','ゆで卵','卵焼き','きゅうりの浅漬け','大学いも','キャベツ塩昆布','枝豆','ミニトマト','ウインナー','冷凍ブロッコリー','かぼちゃ煮'
+];
+const breakfasts = [
+ 'ご飯・味噌汁・納豆','ご飯・味噌汁・卵焼き','ご飯・味噌汁・焼き魚','ご飯・味噌汁・しらす','ご飯・味噌汁・目玉焼き','パン・ヨーグルト・ゆで卵'
+];
+
+let currentPlan = [];
+
+function parseList(v){return v.split(/[、,\n]/).map(s=>s.trim()).filter(Boolean)}
+function saveSettings(){localStorage.setItem('meal_ver4_settings',JSON.stringify({
+  monthlyBudget:val('monthlyBudget'), luxuryBudget:val('luxuryBudget'), householdSize:val('householdSize'), sideCount:val('sideCount'),
+  bentoFreq:val('bentoFreq'), frozen:val('frozen'), likes:val('likes'), dislikes:val('dislikes'), inventory:val('inventory')
+}))}
+function loadSettings(){const s=JSON.parse(localStorage.getItem('meal_ver4_settings')||'null'); if(!s) return; Object.keys(s).forEach(k=>{const el=document.getElementById(k); if(el) el.value=s[k];})}
+function val(id){return document.getElementById(id).value}
+function monthBudgetPerDinner(){return Math.max(0,(+val('monthlyBudget') - +val('luxuryBudget')) / 30)}
+function geminiURL(name){
+  const q = encodeURIComponent(`${name} のレシピを教えて。4人分・時短・家計向け・弁当に使えるなら弁当アレンジもつけて。`);
+  return `https://gemini.google.com/app?q=${q}`;
+}
+function score(main, usedNames, usedCats, likes, dislikes, inventory, weekIndex, dayIndex){
+  let s=0;
+  if(usedNames.has(main.name)) s -= 200;
+  if(usedCats.has(main.cat)) s -= 40;
+  likes.forEach(x=>{if(main.name.includes(x) || main.tags.join(',').includes(x)) s += 25;});
+  dislikes.forEach(x=>{if(main.name.includes(x) || main.tags.join(',').includes(x)) s -= 200;});
+  inventory.forEach(x=>{if(main.name.includes(x) || main.tags.join(',').includes(x)) s += 12;});
+  if(main.cost <= monthBudgetPerDinner()*1.15) s += 15; else s -= 10;
+  if(val('bentoFreq')==='毎日' && main.bento) s += 18;
+  if(val('frozen')==='なるべく使わない' && main.frozen) s -= 40;
+  if(val('frozen')==='たまに使う' && main.frozen) s += ((weekIndex+dayIndex)%6===0?8:-15);
+  if(val('frozen')==='よく使う' && main.frozen) s += 10;
+  if(main.time <= 20) s += 8;
+  return s + Math.random()*6;
+}
+function pickSides(n, usedSideSet){
+  const pool = sides.filter(x=>!usedSideSet.has(x));
+  const chosen=[];
+  while(chosen.length<n && pool.length){
+    const idx=Math.floor(Math.random()*pool.length);
+    const item=pool.splice(idx,1)[0];
+    chosen.push(item); usedSideSet.add(item);
+  }
+  return chosen;
+}
+function buildPlan(){
+  saveSettings();
+  const likes=parseList(val('likes')), dislikes=parseList(val('dislikes')), inventory=parseList(val('inventory'));
+  const usedNames=new Set(), usedSideSet=new Set(); let lastCats=[];
+  currentPlan=[];
+  for(let w=0; w<4; w++){
+    const week=[];
+    for(let d=0; d<7; d++){
+      const usedCats=new Set(lastCats.slice(-2));
+      const candidates=[...mains].sort((a,b)=>score(b,usedNames,usedCats,likes,dislikes,inventory,w,d)-score(a,usedNames,usedCats,likes,dislikes,inventory,w,d));
+      const selected=candidates[0];
+      usedNames.add(selected.name); lastCats.push(selected.cat);
+      const dinnerSides=pickSides(+val('sideCount'), usedSideSet);
+      const breakfast = breakfasts[(w*7+d) % breakfasts.length];
+      const bento = val('bentoFreq')==='なし' ? 'なし' : [selected.bento ? `主菜：${selected.name}の取り分け` : '主菜：卵焼き or ウインナー', `副菜：${dinnerSides[0]||'卵焼き'}`, `副菜：${dinnerSides[1]||'冷凍ブロッコリー'}`, ((w+d)%5===0 && val('frozen')!=='なるべく使わない') ? '冷凍1品：あり' : '冷凍1品：なし'].join(' / ');
+      week.push({day:['月','火','水','木','金','土','日'][d], main:selected, breakfast, bento, sides:dinnerSides});
+    }
+    currentPlan.push(week);
+  }
+  render();
+}
+function rerollWeek1(){
+  if(!currentPlan.length){buildPlan(); return;}
+  const oldPlan=currentPlan.slice(1).flat().map(x=>x.main.name);
+  const likes=parseList(val('likes')), dislikes=parseList(val('dislikes')), inventory=parseList(val('inventory'));
+  const usedNames=new Set(oldPlan), usedSideSet=new Set(); let lastCats=[]; const week=[];
+  for(let d=0; d<7; d++){
+    const usedCats=new Set(lastCats.slice(-2));
+    const candidates=[...mains].sort((a,b)=>score(b,usedNames,usedCats,likes,dislikes,inventory,0,d)-score(a,usedNames,usedCats,likes,dislikes,inventory,0,d));
+    const selected=candidates[0]; usedNames.add(selected.name); lastCats.push(selected.cat);
+    const dinnerSides=pickSides(+val('sideCount'), usedSideSet);
+    week.push({day:['月','火','水','木','金','土','日'][d], main:selected, breakfast:breakfasts[d % breakfasts.length], bento: val('bentoFreq')==='なし' ? 'なし' : [selected.bento ? `主菜：${selected.name}の取り分け` : '主菜：卵焼き or ウインナー', `副菜：${dinnerSides[0]||'卵焼き'}`, `副菜：${dinnerSides[1]||'冷凍ブロッコリー'}`].join(' / '), sides:dinnerSides});
+  }
+  currentPlan[0]=week; render();
+}
+function renderStats(){
+  const dinners=currentPlan.flat();
+  const foodBudget=(+val('monthlyBudget') - +val('luxuryBudget'));
+  const est=dinners.reduce((a,x)=>a+x.main.cost + x.sides.length*120,0);
+  const remain=foodBudget-est;
+  const bentoCount=val('bentoFreq')==='毎日'?28:(val('bentoFreq')==='週2〜3回'?12:0);
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="k">食費原資</div><div class="v">¥${foodBudget.toLocaleString()}</div></div>
+    <div class="stat"><div class="k">概算使用</div><div class="v">¥${Math.round(est).toLocaleString()}</div></div>
+    <div class="stat"><div class="k">残り見込み</div><div class="v">¥${Math.round(remain).toLocaleString()}</div></div>
+    <div class="stat"><div class="k">弁当回数</div><div class="v">${bentoCount}回</div></div>`;
+}
+function renderMonth(){
+  document.getElementById('monthPlan').innerHTML = currentPlan.map((week,i)=>`
+    <div class="week">
+      <h3>第${i+1}週</h3>
+      <div class="list">${week.map(d=>`<div>• ${d.day}：${d.main.name}</div>`).join('')}</div>
+    </div>`).join('');
+}
+function renderWeek1(){
+  const week=currentPlan[0]||[];
+  document.getElementById('weekDetail').innerHTML = week.map(d=>`
+    <div class="meal">
+      <h4>${d.day}：${d.main.name}</h4>
+      <div class="meta">
+        <span class="pill">${d.main.cat}</span>
+        <span class="pill">約${d.main.time}分</span>
+        <span class="pill">約¥${d.main.cost}</span>
+        ${d.main.tags.map(t=>`<span class="pill">${t}</span>`).join('')}
+      </div>
+      <div><strong>朝：</strong>${d.breakfast}</div>
+      <div><strong>夜の副菜：</strong>${d.sides.join(' / ')}</div>
+      <div><strong>翌日弁当：</strong>${d.bento}</div>
+      <a class="linkbtn" href="${geminiURL(d.main.name)}" target="_blank" rel="noopener noreferrer">レシピをGeminiで開く</a>
+    </div>`).join('');
+}
+function render(){renderStats(); renderMonth(); renderWeek1();}
+
+document.getElementById('generateBtn').addEventListener('click', buildPlan);
+document.getElementById('rerollBtn').addEventListener('click', rerollWeek1);
+loadSettings(); buildPlan();
+</script>
+</body>
+</html>
