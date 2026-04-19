@@ -1,0 +1,574 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FX判定アプリ 履歴・勝率版</title>
+<style>
+  :root {
+    --bg:#f4f6f8; --card:#ffffff; --line:#d9dee5; --text:#1f2937; --muted:#6b7280;
+    --green:#15803d; --red:#b91c1c; --amber:#b45309; --blue:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;
+  }
+  .wrap { max-width:900px; margin:0 auto; padding:18px 14px 36px; }
+  h1 { margin:8px 0 8px; font-size:30px; }
+  .lead { color:var(--muted); font-size:14px; margin:0 0 16px; }
+  .card {
+    background:var(--card); border:1px solid var(--line); border-radius:20px;
+    padding:16px; margin:0 0 14px;
+  }
+  .title { font-size:20px; font-weight:800; margin:0 0 12px; }
+  .grid2, .grid3 { display:grid; grid-template-columns:1fr; gap:12px; }
+  @media (min-width:760px) {
+    .grid2 { grid-template-columns:1fr 1fr; }
+    .grid3 { grid-template-columns:1fr 1fr 1fr; }
+  }
+  label { display:block; font-size:14px; font-weight:700; margin:0 0 6px; }
+  input, select {
+    width:100%; padding:13px 14px; border:1px solid var(--line); border-radius:14px;
+    font-size:16px; background:#fff; color:var(--text);
+  }
+  input[readonly] { background:#f8fafc; }
+  button {
+    width:100%; border:none; border-radius:16px; padding:14px 16px;
+    font-size:17px; font-weight:800; cursor:pointer;
+  }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-good { background:#166534; color:#fff; }
+  .btn-neutral { background:#e5e7eb; color:#111827; }
+  .btn-danger { background:#b91c1c; color:#fff; }
+  .btn-row { display:grid; grid-template-columns:1fr; gap:10px; }
+  @media (min-width:760px) { .btn-row { grid-template-columns:1fr 1fr 1fr; } }
+  .status { font-size:14px; margin-top:8px; font-weight:700; }
+  .ok { color:var(--green); } .ng { color:var(--red); } .warn { color:var(--amber); }
+  .decision {
+    text-align:center; padding:18px; border-radius:18px; font-size:28px; font-weight:900;
+    border:1px solid var(--line); margin-top:10px;
+  }
+  .buy { color:var(--green); background:#f0fdf4; border-color:#bbf7d0; }
+  .sell { color:var(--red); background:#fef2f2; border-color:#fecaca; }
+  .wait { color:var(--amber); background:#fffbeb; border-color:#fde68a; }
+  .pillrow { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:12px; }
+  .pill {
+    border:1px solid var(--line); border-radius:16px; padding:12px; background:#fcfcfd; text-align:center;
+  }
+  .pill .k { color:var(--muted); font-size:12px; }
+  .pill .v { font-size:24px; font-weight:900; margin-top:4px; }
+  .reasons { margin:12px 0 0; padding-left:20px; }
+  .reasons li { margin:6px 0; }
+  details { margin-top:10px; }
+  summary { cursor:pointer; font-weight:700; color:#374151; }
+  .small { color:var(--muted); font-size:12px; margin-top:8px; }
+  .history-item {
+    border:1px solid var(--line); border-radius:14px; padding:12px; margin-top:10px; background:#fafafa;
+  }
+  .history-top { font-weight:700; margin-bottom:6px; }
+  .tag {
+    display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700; margin-right:6px;
+  }
+  .tag.buy { background:#dcfce7; color:#166534; }
+  .tag.sell { background:#fee2e2; color:#991b1b; }
+  .tag.wait { background:#fef3c7; color:#92400e; }
+  .tag.win { background:#dcfce7; color:#166534; }
+  .tag.loss { background:#fee2e2; color:#991b1b; }
+  .tag.pending { background:#e5e7eb; color:#374151; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>FX判定アプリ</h1>
+  <p class="lead">育美さん用の履歴・勝率版です。判定→保存→結果入力まで一気通しで使えます。</p>
+
+  <div class="card">
+    <div class="title">設定</div>
+    <div class="grid2">
+      <div>
+        <label for="pair">通貨ペア</label>
+        <select id="pair">
+          <option value="USD/JPY">USD/JPY</option>
+          <option value="NZD/JPY">NZD/JPY</option>
+          <option value="TRY/JPY">TRY/JPY</option>
+        </select>
+      </div>
+      <div>
+        <label for="timeframe">時間足</label>
+        <select id="timeframe">
+          <option value="4h">4時間足</option>
+          <option value="1day">日足</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">結論</div>
+    <button class="btn-primary" type="button" onclick="fetchAll()">全部自動取得</button>
+    <div id="fetchStatus" class="status warn">まだ取得していません。</div>
+
+    <div id="decision" class="decision wait">未判定</div>
+
+    <div class="pillrow">
+      <div class="pill"><div class="k">買い環境</div><div class="v" id="buyEnv">--%</div></div>
+      <div class="pill"><div class="k">売り環境</div><div class="v" id="sellEnv">--%</div></div>
+      <div class="pill"><div class="k">信頼度</div><div class="v" id="confidence">--</div></div>
+    </div>
+
+    <ul id="reasons" class="reasons"></ul>
+    <div class="small">VIX・株式市場・金利・イベントは下で選択します。</div>
+  </div>
+
+  <div class="card">
+    <div class="title">ファンダ補助</div>
+    <div class="grid2">
+      <div>
+        <label for="rateDir">主要金利方向</label>
+        <select id="rateDir">
+          <option value="1" selected>上昇</option>
+          <option value="0">横ばい</option>
+          <option value="-1">低下</option>
+        </select>
+      </div>
+      <div>
+        <label for="vixState">VIX</label>
+        <select id="vixState">
+          <option value="1">低い</option>
+          <option value="0" selected>普通</option>
+          <option value="-1">高い</option>
+        </select>
+      </div>
+      <div>
+        <label for="stocks">株式市場</label>
+        <select id="stocks">
+          <option value="1" selected>上昇</option>
+          <option value="0">横ばい</option>
+          <option value="-1">下落</option>
+        </select>
+      </div>
+      <div>
+        <label for="eventRisk">重要イベント</label>
+        <select id="eventRisk">
+          <option value="1">追い風</option>
+          <option value="0" selected>なし</option>
+          <option value="-1">逆風</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">記録</div>
+    <div class="btn-row">
+      <button class="btn-good" type="button" onclick="saveCurrentResult()">今回の判定を保存</button>
+      <button class="btn-neutral" type="button" onclick="markLatest('win')">最新を勝ちにする</button>
+      <button class="btn-danger" type="button" onclick="markLatest('loss')">最新を負けにする</button>
+    </div>
+    <div class="small">まず「今回の判定を保存」→ 結果が出たら「勝ち」か「負け」を押します。</div>
+  </div>
+
+  <div class="card">
+    <div class="title">成績</div>
+    <div class="pillrow">
+      <div class="pill"><div class="k">保存件数</div><div class="v" id="statTotal">0</div></div>
+      <div class="pill"><div class="k">確定件数</div><div class="v" id="statSettled">0</div></div>
+      <div class="pill"><div class="k">勝率</div><div class="v" id="statWinRate">--</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="title">履歴</div>
+    <div id="historyList" class="small">まだ履歴がありません。</div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>詳細を見る</summary>
+      <div class="grid2" style="margin-top:12px;">
+        <div><label>現在価格</label><input id="price" readonly></div>
+        <div><label>SMA20</label><input id="sma20" readonly></div>
+        <div><label>RSI</label><input id="rsi" readonly></div>
+        <div><label>MACD</label><input id="macdValue" readonly></div>
+        <div><label>MACDシグナル</label><input id="macdSignalValue" readonly></div>
+        <div><label>MACDヒストグラム</label><input id="macdHistValue" readonly></div>
+        <div><label>ボリンジャー位置</label><input id="bbPos" readonly></div>
+        <div><label>一目雲</label><input id="cloudPos" readonly></div>
+        <div><label>上位足トレンド</label><input id="higherTrend" readonly></div>
+        <div><label>連続足の種類</label><input id="streakType" readonly></div>
+        <div><label>連続足本数</label><input id="streakCount" readonly></div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+const API_KEY = "13562a2c528349dd8c20db0aa3705c63";
+const HISTORY_KEY = "fx_app_history_v1";
+
+function setStatus(message, cls) {
+  const el = document.getElementById("fetchStatus");
+  el.textContent = message;
+  el.className = "status " + cls;
+}
+
+function getSymbol() { return document.getElementById("pair").value; }
+function getInterval() { return document.getElementById("timeframe").value; }
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  return await res.json();
+}
+
+async function fetchPrice(symbol) {
+  const data = await fetchJson(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(symbol)}&apikey=${API_KEY}`);
+  if (!data || !data.price) throw new Error(data?.message || "price取得失敗");
+  return Number(data.price);
+}
+
+async function fetchSMA(symbol, interval) {
+  const data = await fetchJson(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&series_type=close&outputsize=1&apikey=${API_KEY}`);
+  if (!data?.values?.[0]?.sma) throw new Error(data?.message || "SMA取得失敗");
+  return Number(data.values[0].sma);
+}
+
+async function fetchRSI(symbol, interval) {
+  const data = await fetchJson(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&series_type=close&outputsize=1&apikey=${API_KEY}`);
+  if (!data?.values?.[0]?.rsi) throw new Error(data?.message || "RSI取得失敗");
+  return Number(data.values[0].rsi);
+}
+
+async function fetchMACD(symbol, interval) {
+  const data = await fetchJson(`https://api.twelvedata.com/macd?symbol=${encodeURIComponent(symbol)}&interval=${interval}&series_type=close&fast_period=12&slow_period=26&signal_period=9&outputsize=2&apikey=${API_KEY}`);
+  if (!data?.values?.[0]?.macd) throw new Error(data?.message || "MACD取得失敗");
+  const cur = data.values[0];
+  const prev = data.values[1] || data.values[0];
+  return {
+    macd: Number(cur.macd),
+    signal: Number(cur.macd_signal),
+    hist: Number(cur.macd_hist),
+    prevHist: Number(prev.macd_hist)
+  };
+}
+
+async function fetchBB(symbol, interval) {
+  const data = await fetchJson(`https://api.twelvedata.com/bbands?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&sd=2&series_type=close&outputsize=1&apikey=${API_KEY}`);
+  if (!data?.values?.[0]?.upper_band) throw new Error(data?.message || "BB取得失敗");
+  const cur = data.values[0];
+  return {
+    upper: Number(cur.upper_band),
+    middle: Number(cur.middle_band),
+    lower: Number(cur.lower_band)
+  };
+}
+
+async function fetchSeries(symbol, interval) {
+  const data = await fetchJson(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=120&apikey=${API_KEY}`);
+  if (!data?.values?.length) throw new Error(data?.message || "時系列取得失敗");
+  return data.values.map(v => ({
+    open: Number(v.open),
+    high: Number(v.high),
+    low: Number(v.low),
+    close: Number(v.close)
+  }));
+}
+
+function classifyBB(price, bb) {
+  const upperMid = (bb.upper + bb.middle) / 2;
+  const lowerMid = (bb.lower + bb.middle) / 2;
+  if (price >= bb.upper) return "+2σ以上";
+  if (price >= upperMid) return "+1σ〜+2σ";
+  if (price >= bb.middle) return "中央付近";
+  if (price >= lowerMid) return "-1σ〜中央";
+  return "-2σ以下";
+}
+
+function calcCloud(series) {
+  if (series.length < 52) return "判定不可";
+  const highs9 = series.slice(0, 9).map(x => x.high);
+  const lows9 = series.slice(0, 9).map(x => x.low);
+  const highs26 = series.slice(0, 26).map(x => x.high);
+  const lows26 = series.slice(0, 26).map(x => x.low);
+  const highs52 = series.slice(0, 52).map(x => x.high);
+  const lows52 = series.slice(0, 52).map(x => x.low);
+  const tenkan = (Math.max(...highs9) + Math.min(...lows9)) / 2;
+  const kijun = (Math.max(...highs26) + Math.min(...lows26)) / 2;
+  const senkouA = (tenkan + kijun) / 2;
+  const senkouB = (Math.max(...highs52) + Math.min(...lows52)) / 2;
+  const price = series[0].close;
+  const upper = Math.max(senkouA, senkouB);
+  const lower = Math.min(senkouA, senkouB);
+  if (price > upper) return "雲の上";
+  if (price < lower) return "雲の下";
+  return "雲の中";
+}
+
+function calcStreak(series) {
+  if (!series.length) return { type: "なし", count: 0 };
+  const firstBull = series[0].close > series[0].open;
+  const firstBear = series[0].close < series[0].open;
+  if (!firstBull && !firstBear) return { type: "なし", count: 0 };
+  let count = 0;
+  for (const c of series) {
+    const bull = c.close > c.open;
+    const bear = c.close < c.open;
+    if (firstBull && bull) count++;
+    else if (firstBear && bear) count++;
+    else break;
+  }
+  return { type: firstBull ? "陽線" : "陰線", count };
+}
+
+function avg(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+function calcHigherTrend(series) {
+  if (series.length < 25) return "横ばい";
+  const closes = series.map(x => x.close);
+  const smaNow = avg(closes.slice(0,20));
+  const smaPrev = avg(closes.slice(1,21));
+  const diff = smaNow - smaPrev;
+  if (diff > 0.02) return "上昇";
+  if (diff < -0.02) return "下降";
+  return "横ばい";
+}
+
+function clamp(n) { return Math.max(0, Math.min(100, Math.round(n))); }
+
+function scoreAndRender() {
+  const price = parseFloat(document.getElementById("price").value || "0");
+  const sma20 = parseFloat(document.getElementById("sma20").value || "0");
+  const rsi = parseFloat(document.getElementById("rsi").value || "0");
+  const rateDir = parseInt(document.getElementById("rateDir").value, 10);
+  const vixState = parseInt(document.getElementById("vixState").value, 10);
+  const stocks = parseInt(document.getElementById("stocks").value, 10);
+  const eventRisk = parseInt(document.getElementById("eventRisk").value, 10);
+
+  if (!price || !sma20 || !rsi || !window._auto) return;
+
+  const bbPos = window._auto.bbPos;
+  const cloudPos = window._auto.cloudPos;
+  const higherTrend = window._auto.higherTrend;
+  const streakType = window._auto.streakType;
+  const streakCount = window._auto.streakCount;
+  const macdDir = window._auto.macdDir;
+  const histDir = window._auto.histDir;
+
+  let buy = 50;
+  let sell = 50;
+  const topReasons = [];
+
+  if (price > sma20) { buy += 12; sell -= 12; topReasons.push("価格>SMA20"); }
+  else if (price < sma20) { buy -= 12; sell += 12; topReasons.push("価格<SMA20"); }
+
+  const bbScoreMap = {"+2σ以上": 10, "+1σ〜+2σ": 5, "中央付近": 0, "-1σ〜中央": -5, "-2σ以下": -10};
+  buy += bbScoreMap[bbPos] || 0;
+  sell -= bbScoreMap[bbPos] || 0;
+
+  const cloudScoreMap = {"雲の上": 8, "雲の中": 0, "雲の下": -8, "判定不可": 0};
+  buy += cloudScoreMap[cloudPos] || 0;
+  sell -= cloudScoreMap[cloudPos] || 0;
+  topReasons.push("一目雲: " + cloudPos);
+
+  const trendScoreMap = {"上昇": 10, "横ばい": 0, "下降": -10};
+  buy += trendScoreMap[higherTrend] || 0;
+  sell -= trendScoreMap[higherTrend] || 0;
+  topReasons.push("上位足: " + higherTrend);
+
+  const macdScoreMap = {"上向き": 10, "横ばい": 0, "下向き": -10};
+  buy += macdScoreMap[macdDir] || 0;
+  sell -= macdScoreMap[macdDir] || 0;
+
+  const histScoreMap = {"拡大中": 6, "横ばい": 0, "縮小中": -6};
+  buy += histScoreMap[histDir] || 0;
+  sell -= histScoreMap[histDir] || 0;
+
+  if (rsi >= 60) { buy += 8; sell -= 8; topReasons.push("RSI強め"); }
+  else if (rsi <= 40) { buy -= 8; sell += 8; topReasons.push("RSI弱め"); }
+  else { topReasons.push("RSI中立"); }
+
+  if (streakCount > 0 && streakType === "陽線") {
+    const pts = Math.min(8, streakCount * 2);
+    buy += pts; sell -= pts;
+  } else if (streakCount > 0 && streakType === "陰線") {
+    const pts = Math.min(8, streakCount * 2);
+    buy -= pts; sell += pts;
+  }
+
+  buy += rateDir * 5; sell -= rateDir * 5;
+  buy += vixState * 4; sell -= vixState * 4;
+  buy += stocks * 6; sell -= stocks * 6;
+  buy += eventRisk * 5; sell -= eventRisk * 5;
+
+  buy = clamp(buy);
+  sell = clamp(sell);
+  const gap = buy - sell;
+  const confidence = Math.min(99, Math.abs(gap) * 3);
+
+  document.getElementById("buyEnv").textContent = buy + "%";
+  document.getElementById("sellEnv").textContent = sell + "%";
+  document.getElementById("confidence").textContent = confidence + "%";
+
+  const decision = document.getElementById("decision");
+  let decisionText = "見送り";
+  let decisionClass = "decision wait";
+  if (gap >= 12) { decisionText = "買い優勢"; decisionClass = "decision buy"; }
+  else if (gap <= -12) { decisionText = "売り優勢"; decisionClass = "decision sell"; }
+  decision.textContent = decisionText;
+  decision.className = decisionClass;
+
+  window._currentDecision = {
+    decision: decisionText,
+    buy,
+    sell,
+    confidence,
+    reasons: topReasons.slice(0,3),
+    pair: getSymbol(),
+    timeframe: getInterval(),
+    price: document.getElementById("price").value
+  };
+
+  const list = document.getElementById("reasons");
+  list.innerHTML = "";
+  topReasons.slice(0,3).forEach(r => {
+    const li = document.createElement("li");
+    li.textContent = r;
+    list.appendChild(li);
+  });
+}
+
+async function fetchAll() {
+  const symbol = getSymbol();
+  const interval = getInterval();
+  setStatus("全部自動取得中です…", "warn");
+
+  try {
+    const [price, sma, rsi, macd, bb, series] = await Promise.all([
+      fetchPrice(symbol),
+      fetchSMA(symbol, interval),
+      fetchRSI(symbol, interval),
+      fetchMACD(symbol, interval),
+      fetchBB(symbol, interval),
+      fetchSeries(symbol, interval)
+    ]);
+
+    const bbPos = classifyBB(price, bb);
+    const cloudPos = calcCloud(series);
+    const streak = calcStreak(series);
+    const higherTrend = calcHigherTrend(series);
+    const macdDir = macd.macd > macd.signal ? "上向き" : (macd.macd < macd.signal ? "下向き" : "横ばい");
+    const histDir = macd.hist > macd.prevHist ? "拡大中" : (macd.hist < macd.prevHist ? "縮小中" : "横ばい");
+
+    document.getElementById("price").value = price.toFixed(3);
+    document.getElementById("sma20").value = sma.toFixed(3);
+    document.getElementById("rsi").value = rsi.toFixed(1);
+    document.getElementById("macdValue").value = macd.macd.toFixed(4);
+    document.getElementById("macdSignalValue").value = macd.signal.toFixed(4);
+    document.getElementById("macdHistValue").value = macd.hist.toFixed(4);
+    document.getElementById("bbPos").value = bbPos;
+    document.getElementById("cloudPos").value = cloudPos;
+    document.getElementById("higherTrend").value = higherTrend;
+    document.getElementById("streakType").value = streak.type;
+    document.getElementById("streakCount").value = String(streak.count);
+
+    window._auto = { bbPos, cloudPos, higherTrend, streakType: streak.type, streakCount: streak.count, macdDir, histDir };
+
+    setStatus(`取得成功：${symbol} / ${interval}`, "ok");
+    scoreAndRender();
+  } catch (e) {
+    setStatus("取得失敗：" + e.message, "ng");
+    alert("自動取得に失敗しました。\n" + e.message);
+  }
+}
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(data) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(data));
+}
+
+function saveCurrentResult() {
+  if (!window._currentDecision) {
+    alert("先に全部自動取得してください。");
+    return;
+  }
+  const data = loadHistory();
+  data.unshift({
+    id: Date.now(),
+    savedAt: new Date().toLocaleString(),
+    status: "pending",
+    ...window._currentDecision
+  });
+  saveHistory(data);
+  renderHistory();
+  alert("保存しました。");
+}
+
+function markLatest(status) {
+  const data = loadHistory();
+  const target = data.find(x => x.status === "pending");
+  if (!target) {
+    alert("結果待ちの履歴がありません。");
+    return;
+  }
+  target.status = status;
+  target.closedAt = new Date().toLocaleString();
+  saveHistory(data);
+  renderHistory();
+}
+
+function renderHistory() {
+  const data = loadHistory();
+  const total = data.length;
+  const settled = data.filter(x => x.status === "win" || x.status === "loss");
+  const wins = settled.filter(x => x.status === "win").length;
+  const winRate = settled.length ? Math.round((wins / settled.length) * 100) + "%" : "--";
+
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statSettled").textContent = settled.length;
+  document.getElementById("statWinRate").textContent = winRate;
+
+  const box = document.getElementById("historyList");
+  if (!data.length) {
+    box.innerHTML = '<div class="small">まだ履歴がありません。</div>';
+    return;
+  }
+
+  box.innerHTML = "";
+  data.slice(0,20).forEach(item => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+
+    const tagClass = item.decision === "買い優勢" ? "buy" : (item.decision === "売り優勢" ? "sell" : "wait");
+    const statusClass = item.status === "win" ? "win" : (item.status === "loss" ? "loss" : "pending");
+    const statusLabel = item.status === "win" ? "勝ち" : (item.status === "loss" ? "負け" : "未確定");
+
+    div.innerHTML = `
+      <div class="history-top">
+        <span class="tag ${tagClass}">${item.decision}</span>
+        <span class="tag ${statusClass}">${statusLabel}</span>
+        ${item.pair} / ${item.timeframe} / 価格 ${item.price}
+      </div>
+      <div class="small">保存: ${item.savedAt}</div>
+      <div class="small">信頼度: ${item.confidence} / 理由: ${(item.reasons || []).join("・")}</div>
+    `;
+    box.appendChild(div);
+  });
+}
+
+document.getElementById("rateDir").addEventListener("change", scoreAndRender);
+document.getElementById("vixState").addEventListener("change", scoreAndRender);
+document.getElementById("stocks").addEventListener("change", scoreAndRender);
+document.getElementById("eventRisk").addEventListener("change", scoreAndRender);
+
+renderHistory();
+</script>
+</body>
+</html>
