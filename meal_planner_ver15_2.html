@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>献立プランナー Ver15.2</title>
+<style>
+body{font-family:sans-serif;background:#f7f5f2;color:#2c2a28;margin:0;padding:12px}
+.wrap{max-width:900px;margin:0 auto}
+.card{background:#fff;border:1px solid #e7dfd7;border-radius:16px;padding:14px;margin:10px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select{width:100%;padding:10px;border:1px solid #d7cec5;border-radius:10px;box-sizing:border-box}
+button{border:none;border-radius:10px;background:#e88b5a;color:#fff;padding:10px 12px;font-weight:700}
+.ghost{background:#fff;color:#e88b5a;border:1px solid #e88b5a}
+.tag{display:inline-block;padding:6px 10px;border:1px solid #dccfc2;border-radius:999px;margin:3px;background:#fff}
+.tag.active{background:#fde7dc}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin:2px 6px 2px 0}
+.dinner{background:#f6c89c}.side{background:#dff3de}.bento{background:#fff0bf}.info{background:#dfeefd}
+.recipe{display:none;background:#faf8f5;border-radius:10px;padding:10px;margin-top:8px}
+.small{font-size:12px;color:#756f68}
+.error{color:#b00020;font-weight:700}
+ul{margin:6px 0 0 18px;padding:0}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="wrap">
+<div class="card">
+<h2>献立プランナー Ver15.2</h2>
+<div class="grid">
+<div><label>家族人数</label><input id="people" type="number" value="4"></div>
+<div><label>お弁当人数</label><input id="bentoPeople" type="number" value="1"></div>
+<div><label>月の食費予算</label><input id="budget" type="number" value="50000"></div>
+<div><label>嗜好品・おやつ予算</label><input id="snackBudget" type="number" value="5000"></div>
+</div>
+<div class="grid">
+<div><label>避けたい食材</label><input id="ng" placeholder="魚、きのこ など"></div>
+<div><label>お弁当曜日</label><select id="bentoMode"><option>平日のみ</option><option>毎日</option><option>なし</option></select></div>
+</div>
+<div><label>好み</label>
+<span class="tag">がっつり</span><span class="tag">あっさり</span><span class="tag">野菜多め</span><span class="tag">肉多め</span>
+<span class="tag active">時短</span><span class="tag active">節約</span><span class="tag">ヘルシー</span><span class="tag">子ども向け</span>
+</div>
+<div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+<button id="makeBtn" type="button">作成</button>
+<button id="saveBtn" type="button">保存</button>
+<button id="loadBtn" type="button">読込</button>
+</div>
+<div id="status" class="small" style="margin-top:8px"></div>
+</div>
+
+<div id="summary"></div>
+<div id="month"></div>
+<div id="shopping"></div>
+<div id="prep"></div>
+<div id="week"></div>
+</div>
+
+<script>
+(function(){
+const status = document.getElementById("status");
+function setStatus(msg, isError){
+  status.textContent = msg;
+  status.className = isError ? "error" : "small";
+}
+window.onerror = function(msg, src, line){
+  setStatus("エラー: " + msg + " / line " + line, true);
+};
+
+const dinners=[
+{name:"鶏の照り焼き",cat:"鶏",cost:680,ing:[["鶏もも肉",400,"g"],["玉ねぎ",1,"個"],["しょうゆ",2,"大さじ"],["みりん",2,"大さじ"]],steps:["鶏肉を焼く","玉ねぎを加える","調味料を絡める","照りが出たら完成"],time:"15分",keep:"冷蔵2日 / 冷凍2週間"},
+{name:"豚しょうが焼き",cat:"豚",cost:720,ing:[["豚こま肉",400,"g"],["玉ねぎ",1,"個"],["しょうが",1,"片"],["しょうゆ",1.5,"大さじ"]],steps:["豚肉を焼く","玉ねぎを加える","しょうがだれで仕上げる"],time:"12分",keep:"冷蔵2日"},
+{name:"ハンバーグ",cat:"ひき肉",cost:850,ing:[["合いびき肉",500,"g"],["玉ねぎ",1,"個"],["卵",1,"個"]],steps:["玉ねぎを炒める","材料を混ぜる","成形して焼く","中まで火を通す"],time:"25分",keep:"冷蔵2日 / 冷凍2週間"},
+{name:"麻婆豆腐",cat:"豆腐",cost:620,ing:[["豚ひき肉",250,"g"],["豆腐",1,"丁"],["長ねぎ",1,"本"],["みそ",1,"大さじ"]],steps:["ひき肉を炒める","ねぎを加える","豆腐を入れる","調味料で煮る"],time:"15分",keep:"冷蔵1日"},
+{name:"肉じゃが",cat:"煮物",cost:780,ing:[["牛こま肉",300,"g"],["じゃがいも",4,"個"],["玉ねぎ",1,"個"],["にんじん",1,"本"],["しょうゆ",2,"大さじ"]],steps:["材料を切る","肉を炒める","野菜を加える","煮含める"],time:"25分",keep:"冷蔵3日"},
+{name:"オムライス",cat:"卵",cost:690,ing:[["鶏むね肉",250,"g"],["玉ねぎ",1,"個"],["卵",4,"個"],["ケチャップ",4,"大さじ"]],steps:["ケチャップライスを作る","卵を焼く","包む"],time:"20分",keep:"当日"},
+{name:"回鍋肉",cat:"豚",cost:760,ing:[["豚こま肉",350,"g"],["キャベツ",0.5,"個"],["ピーマン",3,"個"],["みそ",1.5,"大さじ"]],steps:["肉を炒める","野菜を加える","みそだれで仕上げる"],time:"15分",keep:"冷蔵2日"},
+{name:"豆腐ハンバーグ",cat:"豆腐",cost:630,ing:[["鶏ひき肉",250,"g"],["豆腐",1,"丁"],["玉ねぎ",1,"個"]],steps:["材料を混ぜる","成形する","焼く"],time:"20分",keep:"冷蔵2日 / 冷凍2週間"}
+];
+const sides=[
+{name:"卵焼き",cost:180,ing:[["卵",3,"個"]],steps:["卵を混ぜる","焼く"],time:"8分",keep:"冷蔵2日"},
+{name:"きんぴら",cost:220,ing:[["ごぼう",1,"本"],["にんじん",1,"本"],["しょうゆ",1,"大さじ"]],steps:["細切り","炒める","味付け"],time:"12分",keep:"冷蔵3〜4日"},
+{name:"ブロッコリー塩ゆで",cost:200,ing:[["ブロッコリー",1,"株"]],steps:["小房に分ける","ゆでる"],time:"8分",keep:"冷蔵2〜3日"},
+{name:"ポテサラ",cost:260,ing:[["じゃがいも",3,"個"],["きゅうり",1,"本"],["マヨネーズ",3,"大さじ"]],steps:["じゃがいもをゆでる","つぶす","和える"],time:"18分",keep:"冷蔵2日"},
+{name:"ひじき煮",cost:230,ing:[["乾燥ひじき",1,"袋"],["にんじん",1,"本"]],steps:["戻す","炒める","煮る"],time:"15分",keep:"冷蔵3日"},
+{name:"ほうれん草おひたし",cost:180,ing:[["ほうれん草",1,"袋"]],steps:["ゆでる","しぼる","和える"],time:"8分",keep:"冷蔵2日"}
+];
+const breakfasts=[
+{name:"ご飯＋味噌汁＋納豆＋卵焼き",cost:220,ing:[["納豆",3,"パック"],["卵",2,"個"]],steps:["卵焼きを作る","味噌汁を用意"],time:"10分",keep:"当日"},
+{name:"ご飯＋味噌汁＋ウインナー＋ヨーグルト",cost:280,ing:[["ウインナー",1,"袋"],["ヨーグルト",1,"パック"]],steps:["ウインナーを焼く","味噌汁を用意"],time:"8分",keep:"当日"},
+{name:"おにぎり＋味噌汁＋ゆで卵",cost:240,ing:[["卵",3,"個"]],steps:["おにぎりを作る","ゆで卵を作る"],time:"12分",keep:"当日"}
+];
+const preps=[
+{name:"鶏そぼろ",cost:420,ing:[["鶏ひき肉",400,"g"],["しょうゆ",1.5,"大さじ"]],keep:"冷蔵3日 / 冷凍2週間",tip:"弁当用は小分け冷凍"},
+{name:"ミニハンバーグ",cost:520,ing:[["合いびき肉",400,"g"],["玉ねぎ",1,"個"]],keep:"冷蔵2日 / 冷凍2週間",tip:"朝は温めるだけ"},
+{name:"卵焼き",cost:180,ing:[["卵",6,"個"]],keep:"冷蔵2日",tip:"朝や弁当に便利"},
+{name:"きんぴら",cost:220,ing:[["ごぼう",1,"本"],["にんじん",1,"本"]],keep:"冷蔵3〜4日",tip:"多めが便利"}
+];
+
+function roundHalf(n){return Math.round(n*2)/2;}
+function formatAmount(v,u){
+ if(u==="g"){const x=Math.ceil(v/100)*100; return x>=1000 ? (x/1000).toFixed(1)+"kg" : x+"g";}
+ if(u==="大さじ"||u==="小さじ"){return roundHalf(v)+u;}
+ if(["個","本","株","袋","丁","パック","片"].includes(u)){if(v===0.5)return "1/2"+u; return Math.ceil(v)+u;}
+ return v+u;
+}
+function recipe(item){
+ return '<button onclick="var x=this.nextElementSibling;x.style.display=x.style.display===\'block\'?\'none\':\'block\'" class="ghost" style="margin-top:8px">レシピを見る</button><div class="recipe"><b>材料</b><br>'+item.ing.map(x=>'・'+x[0]+' '+formatAmount(x[1],x[2])).join('<br>')+'<br><br><b>手順</b><br>'+item.steps.map((s,i)=>(i+1)+'. '+s).join('<br>')+'<br><br><span class="small">目安時間：'+item.time+' / 保存：'+item.keep+'</span></div>';
+}
+function addShop(shop, ing, ratio){
+ ing.forEach(x=>{
+   const key=x[0]+'_'+x[2];
+   if(!shop[key]) shop[key]={name:x[0], amount:0, unit:x[2]};
+   shop[key].amount += x[1]*ratio;
+ });
+}
+function buildMonth(pool){
+ let out=[]; let recent=[]; let prevCat='';
+ for(let w=0; w<4; w++){
+   let week=[];
+   for(let d=0; d<7; d++){
+     let cand=pool.filter(x=>!recent.includes(x.name) && x.cat!==prevCat);
+     if(!cand.length) cand=pool.filter(x=>x.cat!==prevCat);
+     if(!cand.length) cand=pool;
+     const pick=cand[Math.floor(Math.random()*cand.length)];
+     week.push(pick); recent.push(pick.name); if(recent.length>8) recent.shift(); prevCat=pick.cat;
+   }
+   out.push(week);
+ }
+ return out;
+}
+function makePlan(){
+ const people=Number(document.getElementById('people').value)||4;
+ const bentoPeople=Number(document.getElementById('bentoPeople').value)||1;
+ const budget=Number(document.getElementById('budget').value)||0;
+ const snackBudget=Number(document.getElementById('snackBudget').value)||0;
+ const ng=(document.getElementById('ng').value||'').trim();
+ const filtered = dinners.filter(x=>!ng || (!x.name.includes(ng) && !x.ing.some(i=>i[0].includes(ng))));
+ const pool = filtered.length ? filtered : dinners;
+ const month = buildMonth(pool);
+
+ document.getElementById('month').innerHTML='<div class="card"><h3>1ヶ月メニュー</h3>'+month.map((w,i)=>'<div><b>第'+(i+1)+'週</b><ul>'+w.map(x=>'<li>'+x.name+'</li>').join('')+'</ul></div>').join('')+'</div>';
+
+ let total=0; let shopping={};
+ let prepHtml='<div class="card"><h3>日曜：作り置き</h3>';
+ preps.forEach(p=>{prepHtml+='✔ '+p.name+' <span class="small">('+p.keep+')</span><br><span class="small">'+p.tip+'</span><br>'; total+=p.cost; addShop(shopping,p.ing,1);});
+ prepHtml+='</div>';
+ document.getElementById('prep').innerHTML=prepHtml;
+
+ let weekly=[]; let used=new Set(); let prevCat='';
+ for(let i=0;i<5;i++){
+   let cand=pool.filter(x=>!used.has(x.name) && x.cat!==prevCat);
+   if(!cand.length) cand=pool.filter(x=>!used.has(x.name));
+   if(!cand.length) cand=pool;
+   const pick=cand[Math.floor(Math.random()*cand.length)];
+   weekly.push(pick); used.add(pick.name); prevCat=pick.cat;
+ }
+
+ let weekHtml='';
+ ['月','火','水','木','金'].forEach((d,i)=>{
+   const breakfast=breakfasts[i%breakfasts.length];
+   const dinner=weekly[i];
+   const s=[...sides].sort(()=>Math.random()-0.5);
+   const side1=s[0], side2=s.find(x=>x.name!==side1.name)||s[1]||s[0];
+   total += breakfast.cost + dinner.cost + side1.cost + side2.cost;
+   addShop(shopping, breakfast.ing, people/3);
+   addShop(shopping, dinner.ing, people/3);
+   addShop(shopping, side1.ing, people/3);
+   addShop(shopping, side2.ing, people/3);
+   weekHtml += '<div class="card"><h3>'+d+'</h3><span class="badge info">朝ごはん</span><div>'+breakfast.name+'</div>'+recipe(breakfast)+'<div style="margin-top:10px"><span class="badge bento">お弁当</span> 主菜：作り置き / 副菜①：'+side1.name+' / 副菜②：'+side2.name+' / 彩り：ミニトマト<div class="small">お弁当 '+bentoPeople+'人分</div></div><div style="margin-top:10px"><span class="badge dinner">夕飯</span><div>'+dinner.name+'</div>'+recipe(dinner)+'</div><div style="margin-top:10px"><span class="badge side">副菜</span> '+side1.name+' / '+side2.name+'</div></div>';
+ });
+ document.getElementById('week').innerHTML=weekHtml;
+
+ const weeklyBudget=Math.round((budget-snackBudget)/4.3);
+ document.getElementById('summary').innerHTML='<div class="card"><span class="badge info">週予算目安 '+weeklyBudget.toLocaleString()+'円</span><span class="badge dinner">今週概算 '+total.toLocaleString()+'円</span><span class="badge side">残り '+(weeklyBudget-total).toLocaleString()+'円</span></div>';
+
+ let shopHtml='<div class="card"><h3>土曜：買い物リスト</h3>';
+ Object.values(shopping).forEach(x=>{ shopHtml += '・'+x.name+' '+formatAmount(x.amount,x.unit)+'<br>'; });
+ shopHtml+='</div>';
+ document.getElementById('shopping').innerHTML=shopHtml;
+ setStatus('作成しました');
+}
+document.getElementById('makeBtn').addEventListener('click', makePlan);
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const data={people:document.getElementById('people').value,bentoPeople:document.getElementById('bentoPeople').value,budget:document.getElementById('budget').value,snackBudget:document.getElementById('snackBudget').value,ng:document.getElementById('ng').value,summary:document.getElementById('summary').innerHTML,month:document.getElementById('month').innerHTML,shopping:document.getElementById('shopping').innerHTML,prep:document.getElementById('prep').innerHTML,week:document.getElementById('week').innerHTML};
+  localStorage.setItem('mealplanner_ver15_2', JSON.stringify(data)); alert('保存しました');
+});
+document.getElementById('loadBtn').addEventListener('click', ()=>{
+  const raw=localStorage.getItem('mealplanner_ver15_2'); if(!raw){alert('保存データがありません'); return;}
+  const d=JSON.parse(raw);
+  document.getElementById('people').value=d.people; document.getElementById('bentoPeople').value=d.bentoPeople; document.getElementById('budget').value=d.budget; document.getElementById('snackBudget').value=d.snackBudget; document.getElementById('ng').value=d.ng;
+  document.getElementById('summary').innerHTML=d.summary; document.getElementById('month').innerHTML=d.month; document.getElementById('shopping').innerHTML=d.shopping; document.getElementById('prep').innerHTML=d.prep; document.getElementById('week').innerHTML=d.week;
+  setStatus('保存データを読み込みました');
+});
+makePlan();
+})();
+</script>
+</body></html>
