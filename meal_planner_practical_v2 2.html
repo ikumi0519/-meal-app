@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>献立プランナー 実用版 v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;background:#f7f5f2;padding:12px;color:#2c2a28}
+.card{background:#fff;padding:14px;border-radius:14px;margin:10px 0;border:1px solid #eadfd4}
+button{background:#e88b5a;color:#fff;border:0;padding:8px 12px;border-radius:8px;font-weight:700;margin:2px}
+input{padding:8px;border:1px solid #d7cec5;border-radius:8px}
+.recipe{display:none;background:#fafafa;padding:10px;margin-top:8px;border-radius:10px}
+.badge{display:inline-block;padding:4px 8px;border-radius:12px;font-size:12px;margin:2px}
+.bento{background:#fff0bf}.dinner{background:#f6c89c}.side{background:#dff3de}.prep{background:#dfeefd}.info{background:#dfeefd}
+.tag{display:inline-block;padding:6px 10px;border:1px solid #dccfc2;border-radius:999px;margin:3px;background:#fff;cursor:pointer}
+.tag.active{background:#fde7dc}
+.small{font-size:12px;color:#666}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>献立プランナー 実用版 v2</h2>
+人数 <input id="people" type="number" value="4"><br><br>
+お弁当人数 <input id="bento" type="number" value="1"><br><br>
+月予算 <input id="budget" type="number" value="50000"><br><br>
+避けたい食材 <input id="ng" placeholder="魚、きのこ など"><br><br>
+
+<div>
+<b>好み</b><br>
+<div id="tags"></div>
+</div><br>
+
+<button onclick="make()">作成</button>
+<button onclick="savePlan()">保存</button>
+<button onclick="loadPlan()">読込</button>
+</div>
+
+<div id="out"></div>
+
+<script>
+const TAGS=[
+"がっつり","あっさり","野菜多め","肉多め","魚少なめ",
+"時短","節約","ヘルシー","子ども向け","大人向け",
+"作り置き向き","お弁当向き","和食寄り","洋食寄り","中華寄り",
+"麺好き","ご飯もの好き","揚げ物少なめ","甘めの味","さっぱり味"
+];
+
+const activeTags=new Set(["時短","節約"]);
+const tagsBox=document.getElementById("tags");
+TAGS.forEach(t=>{
+  const el=document.createElement("span");
+  el.className="tag"+(activeTags.has(t)?" active":"");
+  el.textContent=t;
+  el.onclick=()=>{activeTags.has(t)?activeTags.delete(t):activeTags.add(t);el.classList.toggle("active")};
+  tagsBox.appendChild(el);
+});
+
+const mains=[
+{
+name:"鶏の照り焼き",cat:"肉",taste:"甘辛",genre:"和食",prep:true,bento:true,tags:["時短","子ども向け","和食寄り","お弁当向き"],
+ingredients:[["鶏もも肉",120,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["しょうゆ",0.5,"大さじ","調味料"],["みりん",0.5,"大さじ","調味料"]],
+steps:["鶏肉を一口大に切る","中火で焼く","玉ねぎを加える","しょうゆ・みりんを絡める"],
+save:"冷蔵2日 / 冷凍2週間"
+},
+{
+name:"豚しょうが焼き",cat:"肉",taste:"甘辛",genre:"和食",prep:false,bento:true,tags:["時短","ご飯もの好き","和食寄り"],
+ingredients:[["豚こま肉",120,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["しょうゆ",0.5,"大さじ","調味料"],["しょうが",0.25,"片","調味料"]],
+steps:["豚肉を焼く","玉ねぎを加える","しょうがとしょうゆで味付け","汁気を飛ばす"],
+save:"冷蔵2日"
+},
+{
+name:"ハンバーグ",cat:"肉",taste:"こってり",genre:"洋食",prep:true,bento:true,tags:["がっつり","子ども向け","洋食寄り","作り置き向き"],
+ingredients:[["合いびき肉",130,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["卵",0.25,"個","卵・豆腐"],["パン粉",0.25,"カップ","その他"]],
+steps:["玉ねぎを炒める","材料を混ぜる","成形する","焼いて蒸し焼きにする"],
+save:"冷蔵2日 / 冷凍2週間"
+},
+{
+name:"麻婆豆腐",cat:"豆腐",taste:"辛め",genre:"中華",prep:false,bento:false,tags:["時短","中華寄り"],
+ingredients:[["豚ひき肉",80,"g","肉"],["豆腐",0.3,"丁","卵・豆腐"],["長ねぎ",0.25,"本","野菜"],["みそ",0.3,"大さじ","調味料"]],
+steps:["ひき肉を炒める","長ねぎを加える","豆腐を入れて煮る","味を整える"],
+save:"冷蔵1日"
+},
+{
+name:"肉じゃが",cat:"肉",taste:"甘辛",genre:"和食",prep:true,bento:true,tags:["節約","作り置き向き","和食寄り"],
+ingredients:[["牛こま肉",100,"g","肉"],["じゃがいも",1,"個","野菜"],["玉ねぎ",0.25,"個","野菜"],["にんじん",0.25,"本","野菜"]],
+steps:["材料を切る","肉を炒める","野菜を加える","だしと調味料で煮る"],
+save:"冷蔵3日"
+},
+{
+name:"オムライス",cat:"卵",taste:"ケチャップ",genre:"洋食",prep:false,bento:false,tags:["子ども向け","洋食寄り","ご飯もの好き"],
+ingredients:[["鶏むね肉",80,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["卵",1,"個","卵・豆腐"],["ご飯",1,"膳","その他"]],
+steps:["具材を炒める","ご飯とケチャップを加える","卵を焼く","ご飯にのせる"],
+save:"当日"
+},
+{
+name:"回鍋肉",cat:"肉",taste:"味噌",genre:"中華",prep:false,bento:true,tags:["がっつり","中華寄り"],
+ingredients:[["豚こま肉",100,"g","肉"],["キャベツ",0.15,"個","野菜"],["ピーマン",1,"個","野菜"],["みそ",0.5,"大さじ","調味料"]],
+steps:["豚肉を炒める","野菜を加える","みそだれを絡める"],
+save:"冷蔵2日"
+},
+{
+name:"チキン南蛮",cat:"肉",taste:"甘酢",genre:"洋食",prep:true,bento:true,tags:["がっつり","子ども向け","洋食寄り"],
+ingredients:[["鶏むね肉",120,"g","肉"],["卵",0.5,"個","卵・豆腐"],["玉ねぎ",0.15,"個","野菜"],["酢",0.5,"大さじ","調味料"]],
+steps:["鶏肉を焼く","甘酢を絡める","タルタルを作る","上にかける"],
+save:"冷蔵2日"
+},
+{
+name:"そぼろ丼",cat:"肉",taste:"甘辛",genre:"和食",prep:true,bento:true,tags:["時短","ご飯もの好き","お弁当向き"],
+ingredients:[["鶏ひき肉",100,"g","肉"],["卵",1,"個","卵・豆腐"],["しょうゆ",0.5,"大さじ","調味料"],["ご飯",1,"膳","その他"]],
+steps:["鶏そぼろを作る","卵そぼろを作る","ご飯にのせる"],
+save:"冷蔵2日"
+},
+{
+name:"ポークチャップ",cat:"肉",taste:"ケチャップ",genre:"洋食",prep:false,bento:true,tags:["子ども向け","洋食寄り"],
+ingredients:[["豚ロース",120,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["ケチャップ",1,"大さじ","調味料"]],
+steps:["豚肉を焼く","玉ねぎを加える","ケチャップで味付けする"],
+save:"冷蔵2日"
+},
+{
+name:"八宝菜",cat:"肉",taste:"塩",genre:"中華",prep:false,bento:false,tags:["野菜多め","中華寄り"],
+ingredients:[["豚こま肉",90,"g","肉"],["白菜",0.15,"個","野菜"],["にんじん",0.25,"本","野菜"],["玉ねぎ",0.25,"個","野菜"]],
+steps:["肉を炒める","野菜を加える","水を加えて煮る","とろみをつける"],
+save:"冷蔵2日"
+},
+{
+name:"豆腐ハンバーグ",cat:"豆腐",taste:"あっさり",genre:"和食",prep:true,bento:true,tags:["ヘルシー","作り置き向き","お弁当向き"],
+ingredients:[["鶏ひき肉",90,"g","肉"],["豆腐",0.3,"丁","卵・豆腐"],["玉ねぎ",0.25,"個","野菜"]],
+steps:["豆腐の水気を切る","材料を混ぜる","成形する","焼く"],
+save:"冷蔵2日 / 冷凍2週間"
+},
+{
+name:"親子丼",cat:"肉",taste:"だし",genre:"和食",prep:false,bento:false,tags:["時短","ご飯もの好き","和食寄り"],
+ingredients:[["鶏もも肉",100,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["卵",1,"個","卵・豆腐"],["ご飯",1,"膳","その他"]],
+steps:["鶏肉と玉ねぎを煮る","卵でとじる","ご飯にのせる"],
+save:"当日"
+},
+{
+name:"ドライカレー",cat:"肉",taste:"カレー",genre:"洋食",prep:true,bento:true,tags:["がっつり","子ども向け","ご飯もの好き"],
+ingredients:[["合いびき肉",100,"g","肉"],["玉ねぎ",0.25,"個","野菜"],["にんじん",0.25,"本","野菜"]],
+steps:["野菜をみじん切りにする","ひき肉と炒める","カレー味に仕上げる"],
+save:"冷蔵2日 / 冷凍2週間"
+},
+{
+name:"鮭のホイル焼き",cat:"魚",taste:"味噌",genre:"和食",prep:false,bento:false,tags:["魚少なめ","ヘルシー","和食寄り"],
+ingredients:[["鮭",1,"切","魚"],["玉ねぎ",0.25,"個","野菜"],["みそ",0.5,"大さじ","調味料"]],
+steps:["材料をホイルに包む","フライパンで蒸し焼きにする","火が通ったら完成"],
+save:"当日"
+}
+];
+
+const sideDB=[
+{name:"卵焼き",cat:"卵・豆腐",save:"冷蔵2日",ingredients:[["卵",1,"個","卵・豆腐"]]},
+{name:"きんぴら",cat:"野菜",save:"冷蔵3〜4日",ingredients:[["ごぼう",0.5,"本","野菜"],["にんじん",0.5,"本","野菜"]]},
+{name:"ポテサラ",cat:"野菜",save:"冷蔵2日",ingredients:[["じゃがいも",1,"個","野菜"],["きゅうり",0.5,"本","野菜"]]},
+{name:"ひじき煮",cat:"野菜",save:"冷蔵3日",ingredients:[["乾燥ひじき",0.5,"袋","野菜"],["にんじん",0.5,"本","野菜"]]},
+{name:"ブロッコリー塩ゆで",cat:"野菜",save:"冷蔵2〜3日",ingredients:[["ブロッコリー",0.5,"株","野菜"]]},
+{name:"ほうれん草おひたし",cat:"野菜",save:"冷蔵2日",ingredients:[["ほうれん草",0.5,"袋","野菜"]]},
+{name:"にんじんしりしり",cat:"野菜",save:"冷蔵2日",ingredients:[["にんじん",1,"本","野菜"],["卵",1,"個","卵・豆腐"]]},
+{name:"小松菜ナムル",cat:"野菜",save:"冷蔵2日",ingredients:[["小松菜",0.5,"袋","野菜"]]},
+{name:"もやしナムル",cat:"野菜",save:"冷蔵2日",ingredients:[["もやし",1,"袋","野菜"]]},
+{name:"かぼちゃ煮",cat:"野菜",save:"冷蔵3日",ingredients:[["かぼちゃ",0.25,"個","野菜"]]}
+];
+
+function pickFrom(list){return list[Math.floor(Math.random()*list.length)]}
+function activeTagList(){return [...activeTags];}
+
+function score(m){
+  let s=Math.random()*0.1;
+  activeTagList().forEach(t=>{
+    if(m.tags && m.tags.includes(t)) s+=1;
+  });
+  return s;
+}
+
+function pickBest(list){
+  return list.map(x=>({item:x,score:score(x)})).sort((a,b)=>b.score-a.score)[0].item;
+}
+
+function filteredMains(){
+  const ng=(document.getElementById("ng").value||"").trim();
+  let pool=mains.filter(m=>!ng || (!m.name.includes(ng) && !m.ingredients.some(i=>i[0].includes(ng))));
+  if(activeTags.has("魚少なめ")){
+    pool=pool.filter(m=>m.cat!=="魚");
+  }
+  return pool.length?pool:[...mains];
+}
+
+function pickWeek(){
+  let pool=filteredMains();
+  let result=[];
+  let last=null;
+
+  for(let i=0;i<5;i++){
+    let list=pool.filter(m=>!last || (m.cat!==last.cat && m.taste!==last.taste && m.genre!==last.genre));
+    if(list.length===0) list=[...pool];
+    let pick=pickBest(list);
+    result.push(pick);
+    pool=pool.filter(m=>m.name!==pick.name);
+    last=pick;
+  }
+  return result;
+}
+
+function pickMonth(){
+  let pool=filteredMains();
+  let result=[];
+  let last=null;
+
+  for(let w=0;w<4;w++){
+    let week=[];
+    for(let d=0;d<7;d++){
+      let list=pool.filter(m=>!last || (m.cat!==last.cat && m.taste!==last.taste && m.genre!==last.genre));
+      if(list.length===0) list=[...pool];
+      let pick=pickBest(list);
+      week.push(pick);
+      pool=pool.filter(m=>m.name!==pick.name);
+      last=pick;
+      if(pool.length===0) break;
+    }
+    result.push(week);
+  }
+  return result;
+}
+
+function pickSides(){
+  let pool=[...sideDB];
+  let result=[];
+  for(let i=0;i<10;i++){
+    if(pool.length===0) pool=[...sideDB];
+    let pick=pickFrom(pool);
+    result.push(pick);
+    pool=pool.filter(s=>s.name!==pick.name);
+  }
+  return result;
+}
+
+function addShopping(list,item,people){
+  item.ingredients.forEach(i=>{
+    let key=i[0]+i[2];
+    if(!list[key]) list[key]={name:i[0],amount:0,unit:i[2],cat:i[3]};
+    list[key].amount+=i[1]*people;
+  });
+}
+
+function fmt(n,unit){
+  if(unit==="g"){
+    let v=Math.ceil(n/100)*100;
+    if(v>=1000)return (v/1000).toFixed(1)+"kg";
+    return v+"g";
+  }
+  if(["個","本","丁","株","袋","切"].includes(unit)){
+    if(n<=0.5)return "1/2"+unit;
+    return Math.ceil(n)+unit;
+  }
+  if(unit==="大さじ")return Math.round(n*2)/2+"大さじ";
+  return n+unit;
+}
+
+function toggleRecipe(id){
+  let el=document.getElementById(id);
+  el.style.display=el.style.display==="block"?"none":"block";
+}
+
+function make(){
+  let people=Number(document.getElementById("people").value)||4;
+  let bento=document.getElementById("bento").value;
+  let budget=document.getElementById("budget").value;
+
+  let week=pickWeek();
+  let month=pickMonth();
+  let sides=pickSides();
+  let days=["月","火","水","木","金"];
+  let shopping={};
+
+  let prepMains=week.filter(m=>m.prep).slice(0,3);
+  for(let m of mains){
+    if(prepMains.length>=3)break;
+    if(m.prep && !prepMains.some(p=>p.name===m.name)) prepMains.push(m);
+  }
+
+  let prepSides=sideDB.slice(0,3);
+
+  let html="<div class='card'><h3>日曜作り置き</h3>";
+  html+="<span class='badge prep'>主菜</span><br>";
+  prepMains.forEach(m=>{
+    html+="・"+m.name+"（"+m.save+"）<br>";
+    addShopping(shopping,m,people);
+  });
+  html+="<br><span class='badge side'>副菜</span><br>";
+  prepSides.forEach(s=>{
+    html+="・"+s.name+"（"+s.save+"）<br>";
+    addShopping(shopping,s,people);
+  });
+  html+="</div>";
+
+  html+="<div class='card'><h3>今週の献立</h3>";
+
+  week.forEach((m,i)=>{
+    let s1=sides[i*2];
+    let s2=sides[i*2+1];
+    addShopping(shopping,m,people);
+    addShopping(shopping,s1,people);
+    addShopping(shopping,s2,people);
+
+    html+=`
+    <b>${days[i]}</b><br>
+    <span class="badge bento">弁当</span><br>
+    主菜：${prepMains[i%prepMains.length].name}<br>
+    副菜：${s1.name} / ${s2.name}（${bento}人）<br><br>
+    <span class="badge dinner">夕飯</span><br>
+    ${m.name}<br>
+    <small>${m.genre} / ${m.taste} / ${m.cat}</small><br>
+    <button onclick="toggleRecipe('r${i}')">レシピを見る</button>
+    <div id="r${i}" class="recipe">
+      <b>材料（${people}人分）</b><br>
+      ${m.ingredients.map(x=>"・"+x[0]+" "+fmt(x[1]*people,x[2])).join("<br>")}
+      <br><br>
+      <b>手順</b><br>
+      ${m.steps.map((s,n)=>(n+1)+". "+s).join("<br>")}
+      <br><br>
+      保存：${m.save}
+    </div>
+    <br><br>
+    `;
+  });
+
+  html+=`<hr>週予算：約${Math.round(budget/4)}円</div>`;
+
+  html+="<div class='card'><h3>1ヶ月メニュー</h3>";
+  month.forEach((w,i)=>{
+    html+="<b>第"+(i+1)+"週</b><br>";
+    w.forEach(m=>{
+      html+="・"+m.name+"<br>";
+    });
+    html+="<br>";
+  });
+  html+="</div>";
+
+  html+="<div class='card'><h3>買い物リスト</h3>";
+  ["肉","魚","野菜","卵・豆腐","調味料","その他"].forEach(cat=>{
+    let items=Object.values(shopping).filter(x=>x.cat===cat);
+    if(items.length){
+      html+="<b>"+cat+"</b><br>";
+      items.forEach(x=>{
+        html+="・"+x.name+" "+fmt(x.amount,x.unit)+"<br>";
+      });
+      html+="<br>";
+    }
+  });
+  html+="</div>";
+
+  document.getElementById("out").innerHTML=html;
+}
+
+function savePlan(){
+  localStorage.setItem("mealPlannerPracticalV2", document.getElementById("out").innerHTML);
+  alert("保存しました");
+}
+
+function loadPlan(){
+  const saved = localStorage.getItem("mealPlannerPracticalV2");
+  if(saved){
+    document.getElementById("out").innerHTML = saved;
+  }else{
+    alert("保存データがありません");
+  }
+}
+</script>
+
+</body>
+</html>
